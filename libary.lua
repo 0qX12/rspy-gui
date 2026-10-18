@@ -226,7 +226,7 @@ function Library.new(config)
 		_toggleKey = resolveKeyCode(config.ToggleKey),
 		_onToggleKeyChanged = config.OnToggleKeyChanged,
 		_keyCapture = false,
-		_windowAppearance = nil,
+		_windowScale = nil,
 		_visibilityVersion = 0,
 		_view = nil,
 	}, Library)
@@ -253,9 +253,10 @@ function Library.new(config)
 
 	self.Window = create("Frame", {
 		Size = windowSize,
+		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(
-			math.floor((viewport.X - width) / 2),
-			math.floor((viewport.Y - height) / 2)
+			math.floor(viewport.X / 2),
+			math.floor(viewport.Y / 2)
 		),
 		BackgroundColor3 = COLORS.Background,
 		BorderSizePixel = 0,
@@ -265,6 +266,9 @@ function Library.new(config)
 	}, self.Gui)
 	addCorner(self.Window, 9)
 	addGradient(self.Window, Color3.fromRGB(20, 20, 26), COLORS.Background, 90)
+	self._windowScale = create("UIScale", {
+		Scale = 1,
+	}, self.Window)
 
 	local accentLine = create("Frame", {
 		Size = UDim2.new(1, 0, 0, 2),
@@ -423,92 +427,26 @@ function Library.new(config)
 		end
 	end
 
-	local function captureWindowAppearance()
-		if self._windowAppearance then
-			return
-		end
-
-		self._windowAppearance = {}
-		local function capture(object)
-			local state = {Object = object}
-			local hasState = false
-			if object:IsA("GuiObject") then
-				state.BackgroundTransparency = object.BackgroundTransparency
-				hasState = true
-			end
-			if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
-				state.TextTransparency = object.TextTransparency
-				hasState = true
-			end
-			if object:IsA("ImageLabel") or object:IsA("ImageButton") then
-				state.ImageTransparency = object.ImageTransparency
-				hasState = true
-			end
-			if object:IsA("UIStroke") then
-				state.StrokeTransparency = object.Transparency
-				hasState = true
-			end
-			if hasState then
-				table.insert(self._windowAppearance, state)
-			end
-		end
-
-		capture(self.Window)
-		for _, object in ipairs(self.Window:GetDescendants()) do
-			capture(object)
-		end
-	end
-
 	local function animateWindow(showing)
-		captureWindowAppearance()
 		self._visibilityVersion += 1
 		local version = self._visibilityVersion
-		local transitionDuration = showing and 0.34 or 0.28
+		local transitionDuration = showing and 0.3 or 0.24
+		local hiddenScale = 0.92
 		if showing then
 			self.Window.Visible = true
+			self._windowScale.Scale = hiddenScale
 		end
 
-		for _, state in ipairs(self._windowAppearance) do
-			local object = state.Object
-			if object.Parent then
-				local goal = {}
-				if state.BackgroundTransparency ~= nil then
-					if showing then
-						object.BackgroundTransparency = 1
-					end
-					goal.BackgroundTransparency = showing and state.BackgroundTransparency or 1
-				end
-				if state.TextTransparency ~= nil then
-					if showing then
-						object.TextTransparency = 1
-					end
-					goal.TextTransparency = showing and state.TextTransparency or 1
-				end
-				if state.ImageTransparency ~= nil then
-					if showing then
-						object.ImageTransparency = 1
-					end
-					goal.ImageTransparency = showing and state.ImageTransparency or 1
-				end
-				if state.StrokeTransparency ~= nil then
-					if showing then
-						object.Transparency = 1
-					end
-					goal.Transparency = showing and state.StrokeTransparency or 1
-				end
-				TweenService:Create(object, TweenInfo.new(
-					transitionDuration,
-					showing and Enum.EasingStyle.Quart or Enum.EasingStyle.Cubic,
-					showing and Enum.EasingDirection.Out or Enum.EasingDirection.In,
-					0,
-					false,
-					0
-				), goal):Play()
-			end
-		end
+		TweenService:Create(self._windowScale, TweenInfo.new(
+			transitionDuration,
+			Enum.EasingStyle.Quint,
+			showing and Enum.EasingDirection.Out or Enum.EasingDirection.In
+		), {
+			Scale = showing and 1 or hiddenScale,
+		}):Play()
 
 		if not showing then
-			task.delay(transitionDuration + 0.04, function()
+			task.delay(transitionDuration + 0.03, function()
 				if self._visibilityVersion == version and self._hidden and self.Window.Parent then
 					self.Window.Visible = false
 				end
