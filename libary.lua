@@ -140,10 +140,10 @@ local function createIcon(parent, value)
 		iconLine(holder, UDim2.fromOffset(1, 9), UDim2.fromOffset(4, 1))
 		iconLine(holder, UDim2.fromOffset(14, 9), UDim2.fromOffset(4, 1))
 	elseif key == "eye" or key == "visuals" then
-		iconLine(holder, UDim2.fromOffset(2, 9), UDim2.fromOffset(8, 1), 28)
-		iconLine(holder, UDim2.fromOffset(9, 5), UDim2.fromOffset(8, 1), -28)
 		iconLine(holder, UDim2.fromOffset(2, 9), UDim2.fromOffset(8, 1), -28)
-		iconLine(holder, UDim2.fromOffset(9, 13), UDim2.fromOffset(8, 1), 28)
+		iconLine(holder, UDim2.fromOffset(9, 5), UDim2.fromOffset(8, 1), 28)
+		iconLine(holder, UDim2.fromOffset(2, 9), UDim2.fromOffset(8, 1), 28)
+		iconLine(holder, UDim2.fromOffset(9, 13), UDim2.fromOffset(8, 1), -28)
 		local pupil = create("Frame", {
 			Position = UDim2.fromOffset(7, 7),
 			Size = UDim2.fromOffset(5, 5),
@@ -280,6 +280,7 @@ end
 
 function Library.new(config)
 	config = config or {}
+	local singleView = config.SingleView == true
 
 	local self = setmetatable({
 		_connections = {},
@@ -360,6 +361,7 @@ function Library.new(config)
 		BorderSizePixel = 0,
 		ZIndex = 2,
 	}, self.Window)
+	sidebar.Visible = not singleView
 	local brand = addText(sidebar, config.Title or "f4_byte", 10, COLORS.Text, {
 		Position = UDim2.fromOffset(11, 12),
 		Size = UDim2.fromOffset(50, 20),
@@ -392,13 +394,34 @@ function Library.new(config)
 	}, sidebar)
 
 	local content = create("Frame", {
-		Position = UDim2.fromOffset(72, 0),
-		Size = UDim2.new(1, -72, 1, 0),
+		Position = singleView and UDim2.fromOffset(0, 0) or UDim2.fromOffset(72, 0),
+		Size = singleView and UDim2.new(1, 0, 1, 0) or UDim2.new(1, -72, 1, 0),
 		BackgroundTransparency = 1,
 		ClipsDescendants = false,
 		ZIndex = 1,
 	}, self.Window)
 	local pages = create("Folder", {}, content)
+	if singleView then
+		local header = create("Frame", {
+			Size = UDim2.new(1, 0, 0, 42),
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+		}, content)
+		addText(header, config.Title or "RemoteSpy", 13, COLORS.Text, {
+			Position = UDim2.fromOffset(18, 0),
+			Size = UDim2.new(1, -36, 1, 0),
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Font = FONTS.Bold,
+			ZIndex = 7,
+		})
+		create("Frame", {
+			Position = UDim2.fromOffset(18, 41),
+			Size = UDim2.new(1, -36, 0, 1),
+			BackgroundColor3 = COLORS.Line,
+			BorderSizePixel = 0,
+			ZIndex = 6,
+		}, header)
+	end
 	self._topBar = topBar
 	self._tabsContainer = tabs
 	self._pages = pages
@@ -512,6 +535,7 @@ function Library.new(config)
 			AutoButtonColor = false,
 			ZIndex = 4,
 		}, tabs)
+		tab._button.Visible = not singleView
 		addCorner(tab._button, 6)
 		tab._icon = createIcon(tab._button, data.Icon or tab.Name)
 		tab._activeLine = create("Frame", {
@@ -524,8 +548,8 @@ function Library.new(config)
 		}, tab._button)
 
 		tab._page = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(18, 16),
-			Size = UDim2.new(1, -36, 1, -36),
+			Position = singleView and UDim2.fromOffset(18, 54) or UDim2.fromOffset(18, 16),
+			Size = singleView and UDim2.new(1, -36, 1, -70) or UDim2.new(1, -36, 1, -36),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 3,
@@ -676,6 +700,44 @@ function Library.new(config)
 					end,
 					Get = function()
 						return textLabel.Text
+					end,
+				}
+				table.insert(self.Controls, control)
+				return control
+			end
+
+			function section:Code(options)
+				options = type(options) == "table" and options or {Text = tostring(options or "")}
+				local codeRow = create("Frame", {
+					Size = UDim2.new(1, 0, 0, options.Height or 170),
+					BackgroundColor3 = Color3.fromRGB(12, 12, 16),
+					BorderSizePixel = 0,
+					ClipsDescendants = true,
+					ZIndex = 5,
+				}, self._list)
+				addCorner(codeRow, 5)
+				addStroke(codeRow, COLORS.Line)
+				addText(codeRow, options.Name or "generated request", 9, COLORS.Muted, {
+					Position = UDim2.fromOffset(11, 8),
+					Size = UDim2.new(1, -22, 0, 16),
+					Font = FONTS.Bold,
+					ZIndex = 6,
+				})
+				local codeLabel = addText(codeRow, options.Text or "", 10, COLORS.Text, {
+					Position = UDim2.fromOffset(11, 31),
+					Size = UDim2.new(1, -22, 1, -40),
+					Font = FONTS.Medium,
+					TextYAlignment = Enum.TextYAlignment.Top,
+					TextWrapped = false,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					ZIndex = 6,
+				})
+				local control = {
+					Set = function(_, value)
+						codeLabel.Text = tostring(value or "")
+					end,
+					Get = function()
+						return codeLabel.Text
 					end,
 				}
 				table.insert(self.Controls, control)
