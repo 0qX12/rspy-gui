@@ -251,7 +251,7 @@ function Library.new(config)
 
 	local viewport = workspace.CurrentCamera.ViewportSize
 
-	self.Window = create("Frame", {
+	self.Window = create("CanvasGroup", {
 		Size = windowSize,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(
