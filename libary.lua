@@ -167,6 +167,10 @@ function Library.new(config)
 	}, self.Gui)
 	addCorner(self.Window, 9)
 	addStroke(self.Window, COLORS.Line)
+	local windowScale = create("UIScale", {Scale = 0.97}, self.Window)
+	TweenService:Create(windowScale, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+		Scale = 1,
+	}):Play()
 
 	local accentLine = create("Frame", {
 		Size = UDim2.new(1, 0, 0, 2),
@@ -229,12 +233,16 @@ function Library.new(config)
 	end
 
 	connect(closeButton.MouseEnter, function()
-		closeButton.BackgroundColor3 = Color3.fromRGB(120, 46, 52)
-		closeButton.TextColor3 = COLORS.Text
+		TweenService:Create(closeButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = Color3.fromRGB(120, 46, 52),
+			TextColor3 = COLORS.Text,
+		}):Play()
 	end)
 	connect(closeButton.MouseLeave, function()
-		closeButton.BackgroundColor3 = COLORS.Control
-		closeButton.TextColor3 = COLORS.Muted
+		TweenService:Create(closeButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = COLORS.Control,
+			TextColor3 = COLORS.Muted,
+		}):Play()
 	end)
 	connect(closeButton.MouseButton1Click, function()
 		self:Destroy()
@@ -433,6 +441,7 @@ function Library.new(config)
 			Position = UDim2.fromOffset(0, 0),
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(15, 15, 19),
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 			ZIndex = 8,
@@ -457,6 +466,19 @@ function Library.new(config)
 			ZIndex = 10,
 		}, settingsPanel)
 		addCorner(settingsClose, 4)
+		connect(settingsClose.MouseEnter, function()
+			TweenService:Create(settingsClose, TweenInfo.new(0.12), {
+				BackgroundColor3 = COLORS.PanelRaised,
+				TextColor3 = COLORS.Text,
+			}):Play()
+		end)
+		connect(settingsClose.MouseLeave, function()
+			TweenService:Create(settingsClose, TweenInfo.new(0.12), {
+				BackgroundColor3 = COLORS.Control,
+				TextColor3 = COLORS.Muted,
+			}):Play()
+		end)
+		local settingsScale = create("UIScale", {Scale = 0.985}, settingsPanel)
 		local settingsList = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(9, 36),
 			Size = UDim2.new(1, -18, 1, -43),
@@ -471,22 +493,47 @@ function Library.new(config)
 			Padding = UDim.new(0, 5),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, settingsList)
-		connect(settingsButton.MouseEnter, function()
-			settingsButton.BackgroundColor3 = COLORS.PanelRaised
-			settingsButton.TextColor3 = COLORS.Text
-		end)
-		connect(settingsButton.MouseLeave, function()
-			settingsButton.BackgroundColor3 = COLORS.Control
-			settingsButton.TextColor3 = COLORS.Muted
-		end)
-		connect(settingsButton.MouseButton1Click, function()
+		local function showSettings()
 			settingsPanel.Visible = true
 			settingsButton.Visible = false
+			settingsPanel.BackgroundTransparency = 1
+			settingsScale.Scale = 0.985
+			TweenService:Create(settingsPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0,
+			}):Play()
+			TweenService:Create(settingsScale, TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Scale = 1,
+			}):Play()
+		end
+
+		local function hideSettings()
+			local fade = TweenService:Create(settingsPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				BackgroundTransparency = 1,
+			})
+			TweenService:Create(settingsScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Scale = 0.985,
+			}):Play()
+			fade.Completed:Connect(function()
+				settingsPanel.Visible = false
+				settingsButton.Visible = true
+			end)
+			fade:Play()
+		end
+
+		connect(settingsButton.MouseEnter, function()
+			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
+				BackgroundColor3 = COLORS.PanelRaised,
+				TextColor3 = COLORS.Text,
+			}):Play()
 		end)
-		connect(settingsClose.MouseButton1Click, function()
-			settingsPanel.Visible = false
-			settingsButton.Visible = true
+		connect(settingsButton.MouseLeave, function()
+			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
+				BackgroundColor3 = COLORS.Control,
+				TextColor3 = COLORS.Muted,
+			}):Play()
 		end)
+		connect(settingsButton.MouseButton1Click, showSettings)
+		connect(settingsClose.MouseButton1Click, hideSettings)
 
 		local contextMenu = create("Frame", {
 			Size = UDim2.fromOffset(150, 112),
@@ -497,6 +544,7 @@ function Library.new(config)
 		}, root)
 		addCorner(contextMenu, 6)
 		addStroke(contextMenu, COLORS.LineBright, 0.1)
+		local contextScale = create("UIScale", {Scale = 0.96}, contextMenu)
 		local contextList = create("Frame", {
 			Position = UDim2.fromOffset(5, 5),
 			Size = UDim2.new(1, -10, 1, -10),
@@ -509,6 +557,7 @@ function Library.new(config)
 			Position = UDim2.fromOffset(0, 0),
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = COLORS.Panel,
+			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			Visible = false,
 			ClipsDescendants = true,
@@ -533,6 +582,18 @@ function Library.new(config)
 			ZIndex = 32,
 		}, bannedPanel)
 		addCorner(bannedClose, 4)
+		connect(bannedClose.MouseEnter, function()
+			TweenService:Create(bannedClose, TweenInfo.new(0.12), {
+				BackgroundColor3 = COLORS.PanelRaised,
+				TextColor3 = COLORS.Text,
+			}):Play()
+		end)
+		connect(bannedClose.MouseLeave, function()
+			TweenService:Create(bannedClose, TweenInfo.new(0.12), {
+				BackgroundColor3 = COLORS.Control,
+				TextColor3 = COLORS.Muted,
+			}):Play()
+		end)
 		local bannedList = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(18, 52),
 			Size = UDim2.new(1, -36, 1, -70),
@@ -543,9 +604,35 @@ function Library.new(config)
 			ZIndex = 31,
 		}, bannedPanel)
 		create("UIListLayout", {Padding = UDim.new(0, 4)}, bannedList)
+		local bannedScale = create("UIScale", {Scale = 0.985}, bannedPanel)
+		local function showBanned()
+			settingsPanel.Visible = false
+			settingsButton.Visible = false
+			bannedPanel.Visible = true
+			bannedPanel.BackgroundTransparency = 1
+			bannedScale.Scale = 0.985
+			TweenService:Create(bannedPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				BackgroundTransparency = 0,
+			}):Play()
+			TweenService:Create(bannedScale, TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Scale = 1,
+			}):Play()
+		end
+		local function hideBanned()
+			local fade = TweenService:Create(bannedPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				BackgroundTransparency = 1,
+			})
+			TweenService:Create(bannedScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Scale = 0.985,
+			}):Play()
+			fade.Completed:Connect(function()
+				bannedPanel.Visible = false
+				settingsButton.Visible = true
+			end)
+			fade:Play()
+		end
 		connect(bannedClose.MouseButton1Click, function()
-			bannedPanel.Visible = false
-			settingsButton.Visible = true
+			hideBanned()
 		end)
 
 		local function updateCount()
@@ -564,13 +651,17 @@ function Library.new(config)
 
 		local function selectTarget(target)
 			if view._selected and view._selected.row.Parent then
-				view._selected.row.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
-				view._selected.indicator.Visible = false
+				TweenService:Create(view._selected.row, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+				}):Play()
+				view._selected.selectionStroke.Transparency = 1
 			end
 
 			view._selected = target
-			target.row.BackgroundColor3 = Color3.fromRGB(38, 38, 46)
-			target.indicator.Visible = true
+		TweenService:Create(target.row, TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			BackgroundColor3 = Color3.fromRGB(38, 38, 46),
+		}):Play()
+		target.selectionStroke.Transparency = 0.2
 			view:SetCode(target.data.Code or "-- no selected call", target.name)
 			safeCallback(target.data.Callback, target.data, view)
 		end
@@ -633,20 +724,50 @@ function Library.new(config)
 
 		function view:OpenBanned()
 			view:RefreshBanned()
-			bannedPanel.Visible = not bannedPanel.Visible
 			if bannedPanel.Visible then
-				settingsPanel.Visible = false
-				settingsButton.Visible = false
+				hideBanned()
 			else
-				settingsButton.Visible = true
+				showBanned()
 			end
 			contextMenu.Visible = false
 		end
 
 		local function closeContext()
-			contextMenu.Visible = false
-			view._contextTarget = nil
+			if not contextMenu.Visible then
+				view._contextTarget = nil
+				return
+			end
+
+			local fade = TweenService:Create(contextScale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Scale = 0.96,
+			})
+			fade.Completed:Connect(function()
+				contextMenu.Visible = false
+				view._contextTarget = nil
+			end)
+			fade:Play()
 		end
+		local function openContext(position)
+			contextMenu.Position = position
+			contextMenu.Visible = true
+			contextScale.Scale = 0.96
+			TweenService:Create(contextScale, TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Scale = 1,
+			}):Play()
+		end
+		connect(UserInputService.InputBegan, function(input)
+			if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not contextMenu.Visible then
+				return
+			end
+
+			local position = input.Position
+			local topLeft = contextMenu.AbsolutePosition
+			local bottomRight = topLeft + contextMenu.AbsoluteSize
+			if position.X < topLeft.X or position.X > bottomRight.X
+				or position.Y < topLeft.Y or position.Y > bottomRight.Y then
+				closeContext()
+			end
+		end)
 
 		local function contextAction(name, callback)
 			local button = create("TextButton", {
@@ -662,10 +783,14 @@ function Library.new(config)
 			}, contextList)
 			addCorner(button, 4)
 			connect(button.MouseEnter, function()
-				button.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+				TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					BackgroundColor3 = Color3.fromRGB(42, 42, 50),
+				}):Play()
 			end)
 			connect(button.MouseLeave, function()
-				button.BackgroundColor3 = COLORS.Control
+				TweenService:Create(button, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					BackgroundColor3 = COLORS.Control,
+				}):Play()
 			end)
 			connect(button.MouseButton1Click, function()
 				local target = view._contextTarget
@@ -708,14 +833,7 @@ function Library.new(config)
 				BorderSizePixel = 0,
 				ZIndex = 8,
 			}, row)
-			local indicator = create("Frame", {
-				Position = UDim2.fromOffset(0, 6),
-				Size = UDim2.fromOffset(2, 20),
-				BackgroundColor3 = COLORS.Text,
-				BorderSizePixel = 0,
-				Visible = false,
-				ZIndex = 9,
-			}, row)
+			local selectionStroke = addStroke(row, data.Color or typeColor(remoteType), 1)
 			addText(row, remoteName, 10, COLORS.Text, {
 				Position = UDim2.fromOffset(12, 0),
 				Size = UDim2.new(1, -72, 1, 0),
@@ -724,15 +842,19 @@ function Library.new(config)
 				Font = FONTS.Medium,
 				ZIndex = 8,
 			})
-			local target = {data = data, name = remoteName, row = row, indicator = indicator}
+			local target = {data = data, name = remoteName, row = row, selectionStroke = selectionStroke}
 			connect(row.MouseEnter, function()
 				if view._selected ~= target then
-					row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+					TweenService:Create(row, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(28, 28, 35),
+					}):Play()
 				end
 			end)
 			connect(row.MouseLeave, function()
 				if view._selected ~= target then
-					row.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
+					TweenService:Create(row, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+					}):Play()
 				end
 			end)
 			connect(row.InputBegan, function(input)
@@ -741,11 +863,11 @@ function Library.new(config)
 					local rootPosition = root.AbsolutePosition
 					local x = math.clamp(input.Position.X - rootPosition.X + 4, 4, math.max(root.AbsoluteSize.X - 154, 4))
 					local y = math.clamp(input.Position.Y - rootPosition.Y + 4, 36, math.max(root.AbsoluteSize.Y - 118, 36))
-					contextMenu.Position = UDim2.fromOffset(x, y)
-					contextMenu.Visible = true
+					openContext(UDim2.fromOffset(x, y))
 				end
 			end)
 			connect(row.MouseButton1Click, function()
+				closeContext()
 				selectTarget(target)
 			end)
 
@@ -798,9 +920,13 @@ function Library.new(config)
 				local control
 				local function set(value, fire)
 					state = value == true
-					toggle.BackgroundColor3 = state and Color3.fromRGB(36, 36, 42) or COLORS.Control
-					knob.BackgroundColor3 = state and COLORS.Text or COLORS.Muted
-					knob.Position = state and UDim2.new(1, -14, 0.5, -5) or UDim2.fromOffset(3, 4)
+					TweenService:Create(toggle, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = state and Color3.fromRGB(42, 42, 50) or COLORS.Control,
+					}):Play()
+					TweenService:Create(knob, TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+						BackgroundColor3 = state and COLORS.Text or COLORS.Muted,
+						Position = state and UDim2.new(1, -14, 0.5, -5) or UDim2.fromOffset(3, 4),
+					}):Play()
 					if fire then
 						safeCallback(callback, state, view)
 					end
@@ -835,10 +961,14 @@ function Library.new(config)
 			addCorner(button, 4)
 			addStroke(button, COLORS.Line, 0.15)
 			connect(button.MouseEnter, function()
-				button.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+				TweenService:Create(button, TweenInfo.new(0.1), {
+					BackgroundColor3 = Color3.fromRGB(42, 42, 50),
+				}):Play()
 			end)
 			connect(button.MouseLeave, function()
-				button.BackgroundColor3 = COLORS.Control
+				TweenService:Create(button, TweenInfo.new(0.12), {
+					BackgroundColor3 = COLORS.Control,
+				}):Play()
 			end)
 			connect(button.MouseButton1Click, function()
 				safeCallback(callback, view)
