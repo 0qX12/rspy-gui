@@ -1124,6 +1124,10 @@ function Library.new(config)
 			return section
 		end
 
+		if #self._tabs == 1 then
+			self:SelectTab(tab)
+		end
+
 		return tab
 	end
 
