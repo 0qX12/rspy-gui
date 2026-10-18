@@ -17,6 +17,14 @@ local COLORS = {
 	Accent = Color3.fromRGB(235, 235, 240),
 }
 
+local FONTS = {
+	Regular = Enum.Font.Gotham,
+	Medium = Enum.Font.GothamMedium,
+	Semibold = Enum.Font.GothamSemibold,
+	Bold = Enum.Font.GothamBold,
+	Black = Enum.Font.GothamBlack,
+}
+
 local ICONS = {
 	activity = "◎",
 	eye = "◉",
@@ -78,7 +86,7 @@ local function addText(parent, value, size, color, properties)
 		Text = tostring(value or ""),
 		TextColor3 = color or COLORS.Text,
 		TextSize = size or 11,
-		Font = Enum.Font.Gotham,
+		Font = FONTS.Medium,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}
 
@@ -139,11 +147,22 @@ local function createIcon(parent, value)
 		local pupil = create("Frame", {
 			Position = UDim2.fromOffset(7, 7),
 			Size = UDim2.fromOffset(5, 5),
-			BackgroundTransparency = 1,
+			BackgroundColor3 = COLORS.Muted,
 			ZIndex = 7,
 		}, holder)
 		addCorner(pupil, 4)
-		addStroke(pupil, COLORS.Muted)
+	elseif key == "save" or key == "config" then
+		for index, x in ipairs({4, 9, 14}) do
+			iconLine(holder, UDim2.fromOffset(x, 3), UDim2.fromOffset(1, 14))
+			local knob = create("Frame", {
+				Position = UDim2.fromOffset(x - 2, index == 1 and 5 or index == 2 and 11 or 7),
+				Size = UDim2.fromOffset(5, 5),
+				BackgroundColor3 = COLORS.Background,
+				ZIndex = 7,
+			}, holder)
+			addCorner(knob, 4)
+			addStroke(knob, COLORS.Muted)
+		end
 	elseif key == "settings" or key == "misc" then
 		for index, y in ipairs({4, 9, 14}) do
 			iconLine(holder, UDim2.fromOffset(2, y), UDim2.fromOffset(15, 1))
@@ -341,10 +360,10 @@ function Library.new(config)
 		BorderSizePixel = 0,
 		ZIndex = 2,
 	}, self.Window)
-	local brand = addText(sidebar, config.Title or "f4_byte", 11, COLORS.Text, {
+	local brand = addText(sidebar, config.Title or "f4_byte", 10, COLORS.Text, {
 		Position = UDim2.fromOffset(11, 12),
 		Size = UDim2.fromOffset(50, 20),
-		Font = Enum.Font.GothamBold,
+		Font = FONTS.Black,
 		TextTruncate = Enum.TextTruncate.AtEnd,
 		Active = true,
 		ZIndex = 6,
@@ -597,11 +616,11 @@ function Library.new(config)
 			}, column)
 			addCorner(section._box, 8)
 			addStroke(section._box, COLORS.Line)
-			addText(section._box, section.Name, 10, COLORS.Muted, {
+			addText(section._box, section.Name, 11, COLORS.Muted, {
 				Position = UDim2.fromOffset(11, 0),
 				Size = UDim2.new(1, -22, 0, 32),
 				TextYAlignment = Enum.TextYAlignment.Center,
-				Font = Enum.Font.GothamSemibold,
+				Font = FONTS.Bold,
 				ZIndex = 4,
 			})
 			section._list = create("Frame", {
@@ -632,7 +651,7 @@ function Library.new(config)
 					Size = UDim2.new(1, -155, 1, 0),
 					TextYAlignment = Enum.TextYAlignment.Center,
 					TextTruncate = Enum.TextTruncate.AtEnd,
-					Font = Enum.Font.GothamSemibold,
+					Font = FONTS.Medium,
 					ZIndex = 6,
 				})
 				create("Frame", {
@@ -748,7 +767,9 @@ function Library.new(config)
 						and UDim2.new(1, -15, 0.5, -5)
 						or UDim2.fromOffset(3, 4)
 					rowIndicator.Visible = value
+					row.BackgroundColor3 = value and COLORS.PanelRaised or COLORS.Panel
 					rowLabel.TextColor3 = value and COLORS.Text or COLORS.Muted
+					rowLabel.Font = value and FONTS.Bold or FONTS.Medium
 
 					if fire then
 						safeCallback(data.Callback, value, control)
@@ -965,7 +986,7 @@ function Library.new(config)
 						Text = tostring(item),
 						TextColor3 = COLORS.Text,
 						TextSize = 10,
-						Font = Enum.Font.Gotham,
+						Font = FONTS.Medium,
 						AutoButtonColor = false,
 						ZIndex = 31,
 					}, menu)
