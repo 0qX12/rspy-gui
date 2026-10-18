@@ -518,8 +518,8 @@ function Library.new(config)
 			applySearch()
 		end)
 		local filterPopup = create("Frame", {
-			Position = UDim2.fromOffset(9, 44),
-			Size = UDim2.new(1, -18, 0, 132),
+			Position = UDim2.new(1, -174, 0, 44),
+			Size = UDim2.fromOffset(165, 132),
 			BackgroundColor3 = COLORS.PanelRaised,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
@@ -548,10 +548,10 @@ function Library.new(config)
 		}, filterList)
 		local filterOptions = {}
 		local function updateFilterVisuals()
-			for value, option in pairs(filterOptions) do
+			for value, optionData in pairs(filterOptions) do
 				local active = value == filterType
-				option.BackgroundColor3 = active and Color3.fromRGB(48, 48, 58) or Color3.fromRGB(27, 27, 34)
-				option.TextColor3 = active and COLORS.Text or COLORS.Muted
+				optionData.Button.BackgroundColor3 = active and Color3.fromRGB(48, 48, 58) or Color3.fromRGB(27, 27, 34)
+				optionData.Label.TextColor3 = active and COLORS.Text or COLORS.Muted
 			end
 			filterButton.ImageColor3 = filterType == "all" and COLORS.Muted or COLORS.Text
 			filterButton.ImageTransparency = filterType == "all" and 0.08 or 0
@@ -560,24 +560,27 @@ function Library.new(config)
 			local option = create("TextButton", {
 				Size = UDim2.new(1, 0, 0, 27),
 				BackgroundColor3 = Color3.fromRGB(27, 27, 34),
-				Text = "  " .. label,
-				TextColor3 = COLORS.Muted,
-				TextSize = 10,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Font = FONTS.Medium,
+				Text = "",
 				AutoButtonColor = false,
 				ZIndex = 52,
 			}, filterList)
 			addCorner(option, 5)
 			addStroke(option, COLORS.Line, 0.62)
 			create("Frame", {
-				Position = UDim2.fromOffset(6, 7),
+				Position = UDim2.fromOffset(8, 7),
 				Size = UDim2.fromOffset(2, 13),
 				BackgroundColor3 = color,
 				BorderSizePixel = 0,
 				ZIndex = 53,
 			}, option)
-			filterOptions[value] = option
+			local optionLabel = addText(option, label, 10, COLORS.Muted, {
+				Position = UDim2.fromOffset(19, 0),
+				Size = UDim2.new(1, -27, 1, 0),
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Font = FONTS.Medium,
+				ZIndex = 53,
+			})
+			filterOptions[value] = {Button = option, Label = optionLabel}
 			connect(option.MouseEnter, function()
 				if filterType ~= value then
 					TweenService:Create(option, TweenInfo.new(0.1), {
