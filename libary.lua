@@ -1,6 +1,3 @@
--- Library.lua
--- RemoteSpy-only monochrome GUI library.
-
 local Library = {}
 Library.__index = Library
 
@@ -32,9 +29,21 @@ local FONTS = {
 }
 
 local ICONS = {
-	Settings = "rbxassetid://129338365599931",
-	Close = "rbxassetid://77236530693648",
+	Settings = {16898613777, {48, 48}, {771, 257}},
+	Close = {16898613869, {48, 48}, {869, 906}},
+	Search = {16898613699, {48, 48}, {918, 857}},
 }
+
+local function iconProperties(icon, color, transparency)
+	return {
+		Image = "rbxassetid://" .. tostring(icon[1]),
+		ImageRectSize = Vector2.new(icon[2][1], icon[2][2]),
+		ImageRectOffset = Vector2.new(icon[3][1], icon[3][2]),
+		ImageColor3 = color or COLORS.Muted,
+		ImageTransparency = transparency or 0,
+		ScaleType = Enum.ScaleType.Fit,
+	}
+end
 
 local function getGuiParent()
 	local ok, holder = pcall(function()
@@ -239,13 +248,12 @@ function Library.new(config)
 		Position = UDim2.new(1, -27, 0, 6),
 		Size = UDim2.fromOffset(20, 20),
 		BackgroundColor3 = COLORS.Control,
-		Image = ICONS.Close,
-		ImageColor3 = COLORS.Muted,
-		ImageTransparency = 0.08,
-		ScaleType = Enum.ScaleType.Fit,
 		AutoButtonColor = false,
 		ZIndex = 7,
 	}, topBar)
+	for property, value in pairs(iconProperties(ICONS.Close, COLORS.Muted, 0.08)) do
+		closeButton[property] = value
+	end
 	addCorner(closeButton, 5)
 	addStroke(closeButton, COLORS.Line, 0.2)
 
@@ -395,9 +403,43 @@ function Library.new(config)
 			ZIndex = 8,
 		}, leftPanel)
 
-		local logList = create("ScrollingFrame", {
+		local searchFrame = create("Frame", {
 			Position = UDim2.fromOffset(9, 9),
-			Size = UDim2.new(1, -18, 1, -52),
+			Size = UDim2.new(1, -18, 0, 30),
+			BackgroundColor3 = Color3.fromRGB(24, 24, 30),
+			BorderSizePixel = 0,
+			ZIndex = 7,
+		}, leftPanel)
+		addCorner(searchFrame, 6)
+		addStroke(searchFrame, COLORS.Line, 0.25)
+		local searchIcon = create("ImageLabel", {
+			Position = UDim2.fromOffset(9, 7),
+			Size = UDim2.fromOffset(16, 16),
+			BackgroundTransparency = 1,
+			ZIndex = 8,
+		}, searchFrame)
+		for property, value in pairs(iconProperties(ICONS.Search, COLORS.Muted, 0.08)) do
+			searchIcon[property] = value
+		end
+		local searchInput = create("TextBox", {
+			Position = UDim2.fromOffset(32, 0),
+			Size = UDim2.new(1, -40, 1, 0),
+			BackgroundTransparency = 1,
+			ClearTextOnFocus = false,
+			PlaceholderText = "Search remotes",
+			PlaceholderColor3 = COLORS.MutedDark,
+			Text = "",
+			TextColor3 = COLORS.Text,
+			TextSize = 10,
+			Font = FONTS.Medium,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			ZIndex = 8,
+		}, searchFrame)
+
+		local logList = create("ScrollingFrame", {
+			Position = UDim2.fromOffset(9, 48),
+			Size = UDim2.new(1, -18, 1, -91),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 0,
@@ -410,6 +452,23 @@ function Library.new(config)
 			Padding = UDim.new(0, 7),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, logList)
+		local searchQuery = ""
+		local function matchesSearch(target)
+			return searchQuery == ""
+				or string.find(string.lower(target.name), searchQuery, 1, true) ~= nil
+		end
+		local function applySearch()
+			for _, target in ipairs(view._logs) do
+				if target.row.Parent then
+					target.row.Visible = view._banned[target.name] ~= true and matchesSearch(target)
+				end
+			end
+			logList.CanvasPosition = Vector2.zero
+		end
+		connect(searchInput:GetPropertyChangedSignal("Text"), function()
+			searchQuery = string.lower(searchInput.Text or "")
+			applySearch()
+		end)
 
 		local detailPanel = create("Frame", {
 			Position = UDim2.fromOffset(leftWidth, 0),
@@ -450,13 +509,12 @@ function Library.new(config)
 			Position = UDim2.new(0, 9, 1, -39),
 			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = Color3.fromRGB(25, 25, 31),
-			Image = ICONS.Settings,
-			ImageColor3 = COLORS.Muted,
-			ImageTransparency = 0.06,
-			ScaleType = Enum.ScaleType.Fit,
 			AutoButtonColor = false,
 			ZIndex = 12,
 		}, leftPanel)
+		for property, value in pairs(iconProperties(ICONS.Settings, COLORS.Muted, 0.06)) do
+			settingsButton[property] = value
+		end
 		addCorner(settingsButton, 5)
 		addStroke(settingsButton, COLORS.Line, 0.15)
 
@@ -494,13 +552,12 @@ function Library.new(config)
 			Position = UDim2.new(1, -54, 0, 14),
 			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = COLORS.Control,
-			Image = ICONS.Close,
-			ImageColor3 = COLORS.Muted,
-			ImageTransparency = 0.08,
-			ScaleType = Enum.ScaleType.Fit,
 			AutoButtonColor = false,
 			ZIndex = 10,
 		}, settingsPanel)
+		for property, value in pairs(iconProperties(ICONS.Close, COLORS.Muted, 0.08)) do
+			settingsClose[property] = value
+		end
 		addCorner(settingsClose, 6)
 		addStroke(settingsClose, COLORS.Line, 0.25)
 		connect(settingsClose.MouseEnter, function()
@@ -582,23 +639,27 @@ function Library.new(config)
 		connect(settingsClose.MouseButton1Click, hideSettings)
 
 		local contextMenu = create("Frame", {
-			Size = UDim2.fromOffset(150, 112),
+			Size = UDim2.fromOffset(188, 126),
 			BackgroundColor3 = COLORS.PanelRaised,
 			BorderSizePixel = 0,
+			ClipsDescendants = true,
 			Visible = false,
 			ZIndex = 40,
 		}, root)
-		addCorner(contextMenu, 6)
-		addStroke(contextMenu, COLORS.LineBright, 0.1)
-		addGradient(contextMenu, Color3.fromRGB(43, 43, 51), Color3.fromRGB(24, 24, 30), 90)
+		addCorner(contextMenu, 8)
+		addStroke(contextMenu, COLORS.LineBright, 0.28)
+		addGradient(contextMenu, Color3.fromRGB(38, 38, 47), Color3.fromRGB(19, 19, 25), 90)
 		local contextScale = create("UIScale", {Scale = 0.96}, contextMenu)
 		local contextList = create("Frame", {
-			Position = UDim2.fromOffset(5, 5),
-			Size = UDim2.new(1, -10, 1, -10),
+			Position = UDim2.fromOffset(7, 7),
+			Size = UDim2.new(1, -14, 1, -14),
 			BackgroundTransparency = 1,
 			ZIndex = 41,
 		}, contextMenu)
-		create("UIListLayout", {Padding = UDim.new(0, 3)}, contextList)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 5),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, contextList)
 
 		local bannedPanel = create("Frame", {
 			Position = UDim2.fromOffset(0, 0),
@@ -641,13 +702,12 @@ function Library.new(config)
 			Position = UDim2.new(1, -54, 0, 14),
 			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = COLORS.Control,
-			Image = ICONS.Close,
-			ImageColor3 = COLORS.Muted,
-			ImageTransparency = 0.08,
-			ScaleType = Enum.ScaleType.Fit,
 			AutoButtonColor = false,
 			ZIndex = 32,
 		}, bannedPanel)
+		for property, value in pairs(iconProperties(ICONS.Close, COLORS.Muted, 0.08)) do
+			bannedClose[property] = value
+		end
 		addCorner(bannedClose, 6)
 		addStroke(bannedClose, COLORS.Line, 0.25)
 		connect(bannedClose.MouseEnter, function()
@@ -818,7 +878,7 @@ function Library.new(config)
 					view._banned[name] = nil
 					for _, target in ipairs(view._logs) do
 						if target.name == name and target.row.Parent then
-							target.row.Visible = true
+							target.row.Visible = matchesSearch(target)
 						end
 					end
 					view:RefreshBanned()
@@ -898,27 +958,38 @@ function Library.new(config)
 			end
 		end)
 
-		local function contextAction(name, callback)
+		local function contextAction(name, callback, accentColor)
 			local button = create("TextButton", {
-				Size = UDim2.new(1, 0, 0, 25),
-				BackgroundColor3 = COLORS.Control,
-				Text = "  " .. name,
-				TextColor3 = COLORS.Text,
-				TextSize = 10,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Font = FONTS.Medium,
+				Size = UDim2.new(1, 0, 0, 34),
+				BackgroundColor3 = Color3.fromRGB(27, 27, 34),
+				Text = "",
 				AutoButtonColor = false,
 				ZIndex = 42,
 			}, contextList)
-			addCorner(button, 4)
+			addCorner(button, 6)
+			addStroke(button, COLORS.Line, 0.62)
+			create("Frame", {
+				Position = UDim2.fromOffset(7, 9),
+				Size = UDim2.fromOffset(2, 16),
+				BackgroundColor3 = accentColor or COLORS.Accent,
+				BorderSizePixel = 0,
+				ZIndex = 43,
+			}, button)
+			addText(button, name, 10, COLORS.Text, {
+				Position = UDim2.fromOffset(17, 0),
+				Size = UDim2.new(1, -25, 1, 0),
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Font = FONTS.Medium,
+				ZIndex = 43,
+			})
 			connect(button.MouseEnter, function()
 				TweenService:Create(button, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					BackgroundColor3 = Color3.fromRGB(42, 42, 50),
+					BackgroundColor3 = Color3.fromRGB(48, 48, 58),
 				}):Play()
 			end)
 			connect(button.MouseLeave, function()
 				TweenService:Create(button, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					BackgroundColor3 = COLORS.Control,
+					BackgroundColor3 = Color3.fromRGB(27, 27, 34),
 				}):Play()
 			end)
 			connect(button.MouseButton1Click, function()
@@ -932,16 +1003,16 @@ function Library.new(config)
 
 		contextAction("Run preview", function(data)
 			view:SetCode(data.Code or "-- no selected call")
-		end)
+		end, COLORS.Accent)
 		contextAction("Copy code", function(data)
 			if type(setclipboard) == "function" then
 				pcall(setclipboard, tostring(data.Code or ""))
 			end
 			view:SetCode(data.Code or "-- no selected call")
-		end)
+		end, COLORS.Function)
 		contextAction("Ban remote", function(data)
 			view:Ban(data)
-		end)
+		end, Color3.fromRGB(225, 86, 92))
 
 		function view:AddLog(entry)
 			local data = type(entry) == "table" and entry or {Name = tostring(entry)}
@@ -991,8 +1062,8 @@ function Library.new(config)
 				if input.UserInputType == Enum.UserInputType.MouseButton2 then
 					view._contextTarget = target
 					local rootPosition = root.AbsolutePosition
-					local x = math.clamp(input.Position.X - rootPosition.X + 4, 4, math.max(root.AbsoluteSize.X - 154, 4))
-					local y = math.clamp(input.Position.Y - rootPosition.Y + 4, 36, math.max(root.AbsoluteSize.Y - 118, 36))
+					local x = math.clamp(input.Position.X - rootPosition.X + 4, 4, math.max(root.AbsoluteSize.X - 194, 4))
+					local y = math.clamp(input.Position.Y - rootPosition.Y + 4, 36, math.max(root.AbsoluteSize.Y - 132, 36))
 					openContext(UDim2.fromOffset(x, y))
 				end
 			end)
@@ -1001,7 +1072,7 @@ function Library.new(config)
 				selectTarget(target)
 			end)
 
-			row.Visible = view._banned[remoteName] ~= true
+			row.Visible = view._banned[remoteName] ~= true and matchesSearch(target)
 			table.insert(view._logs, target)
 			if not view._selected and row.Visible then
 				selectTarget(target)
