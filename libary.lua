@@ -1,10 +1,12 @@
+-- Library.lua
+-- RemoteSpy-only monochrome GUI library.
+
 local Library = {}
 Library.__index = Library
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local ContentProvider = game:GetService("ContentProvider")
 
 local COLORS = {
 	Background = Color3.fromRGB(9, 9, 12),
@@ -78,29 +80,34 @@ local function create(className, properties, parent)
 	return object
 end
 
-local function preloadFonts(parent)
-	local labels = {}
+local WARMUP_SIZES = {9, 10, 11, 12, 13, 14}
+local WARMUP_TEXT = "abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789 -_.,:;()[]{}=\"'/"
+
+local function warmupFonts(parent)
+	local holder = create("Frame", {
+		Name = "FontWarmup",
+		Size = UDim2.fromOffset(1, 1),
+		BackgroundTransparency = 1,
+		ClipsDescendants = false,
+		ZIndex = 0,
+	}, parent)
+
 	for _, font in pairs(FONTS) do
-		table.insert(labels, create("TextLabel", {
+		for _, size in ipairs(WARMUP_SIZES) do
+			create("TextLabel", {
 			Size = UDim2.fromOffset(1, 1),
 			BackgroundTransparency = 1,
-			TextTransparency = 1,
-			Text = "Aa",
+			TextTransparency = 0.99,
+			Text = WARMUP_TEXT,
+			TextSize = size,
 			Font = font,
-		}, parent))
+			TextXAlignment = Enum.TextXAlignment.Left,
+			ZIndex = 0,
+			}, holder)
+		end
 	end
 
-	task.spawn(function()
-		pcall(function()
-			ContentProvider:PreloadAsync(labels)
-		end)
-		task.wait(1)
-		for _, label in ipairs(labels) do
-			if label.Parent then
-				label:Destroy()
-			end
-		end
-	end)
+	return holder
 end
 
 local function addCorner(parent, radius)
@@ -217,7 +224,7 @@ function Library.new(config)
 		DisplayOrder = 1000,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, host)
-	preloadFonts(self.Gui)
+	warmupFonts(self.Gui)
 
 	local viewport = workspace.CurrentCamera.ViewportSize
 
@@ -235,10 +242,6 @@ function Library.new(config)
 	}, self.Gui)
 	addCorner(self.Window, 9)
 	addGradient(self.Window, Color3.fromRGB(20, 20, 26), COLORS.Background, 90)
-	local windowScale = create("UIScale", {Scale = 0.97}, self.Window)
-	TweenService:Create(windowScale, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-		Scale = 1,
-	}):Play()
 
 	local accentLine = create("Frame", {
 		Size = UDim2.new(1, 0, 0, 2),
@@ -604,7 +607,6 @@ function Library.new(config)
 				ImageTransparency = 0.08,
 			}):Play()
 		end)
-		local settingsScale = create("UIScale", {Scale = 0.985}, settingsPanel)
 		local settingsList = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(24, 82),
 			Size = UDim2.new(1, -48, 1, -112),
@@ -628,12 +630,8 @@ function Library.new(config)
 			settingsPanel.Visible = true
 			settingsButton.Visible = false
 			settingsPanel.BackgroundTransparency = 1
-			settingsScale.Scale = 0.985
 			TweenService:Create(settingsPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 				BackgroundTransparency = 0,
-			}):Play()
-			TweenService:Create(settingsScale, TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-				Scale = 1,
 			}):Play()
 		end
 
@@ -641,9 +639,6 @@ function Library.new(config)
 			local fade = TweenService:Create(settingsPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 				BackgroundTransparency = 1,
 			})
-			TweenService:Create(settingsScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Scale = 0.985,
-			}):Play()
 			fade.Completed:Connect(function()
 				settingsPanel.Visible = false
 				settingsButton.Visible = true
@@ -678,7 +673,6 @@ function Library.new(config)
 		addCorner(contextMenu, 8)
 		addStroke(contextMenu, COLORS.LineBright, 0.28)
 		addGradient(contextMenu, Color3.fromRGB(38, 38, 47), Color3.fromRGB(19, 19, 25), 90)
-		local contextScale = create("UIScale", {Scale = 0.96}, contextMenu)
 		local contextList = create("Frame", {
 			Position = UDim2.fromOffset(7, 7),
 			Size = UDim2.new(1, -14, 1, -14),
@@ -791,27 +785,19 @@ function Library.new(config)
 			Font = FONTS.Medium,
 			ZIndex = 34,
 		})
-		local bannedScale = create("UIScale", {Scale = 0.985}, bannedPanel)
 		local function showBanned()
 			settingsPanel.Visible = false
 			settingsButton.Visible = false
 			bannedPanel.Visible = true
 			bannedPanel.BackgroundTransparency = 1
-			bannedScale.Scale = 0.985
 			TweenService:Create(bannedPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 				BackgroundTransparency = 0,
-			}):Play()
-			TweenService:Create(bannedScale, TweenInfo.new(0.24, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-				Scale = 1,
 			}):Play()
 		end
 		local function hideBanned()
 			local fade = TweenService:Create(bannedPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 				BackgroundTransparency = 1,
 			})
-			TweenService:Create(bannedScale, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Scale = 0.985,
-			}):Play()
 			fade.Completed:Connect(function()
 				bannedPanel.Visible = false
 				settingsButton.Visible = true
@@ -956,15 +942,8 @@ function Library.new(config)
 				view._contextTarget = nil
 				return
 			end
-
-			local fade = TweenService:Create(contextScale, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-				Scale = 0.96,
-			})
-			fade.Completed:Connect(function()
-				contextMenu.Visible = false
-				view._contextTarget = nil
-			end)
-			fade:Play()
+			contextMenu.Visible = false
+			view._contextTarget = nil
 		end
 		local function openContext(position)
 			for _, target in ipairs(view._logs) do
@@ -976,10 +955,6 @@ function Library.new(config)
 			end
 			contextMenu.Position = position
 			contextMenu.Visible = true
-			contextScale.Scale = 0.96
-			TweenService:Create(contextScale, TweenInfo.new(0.14, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-				Scale = 1,
-			}):Play()
 		end
 		connect(UserInputService.InputBegan, function(input)
 			if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not contextMenu.Visible then
