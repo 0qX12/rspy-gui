@@ -27,11 +27,6 @@ local ICONS = {
 	config = "⌘",
 }
 
-local function iconGlyph(value, fallback)
-	local key = string.lower(tostring(value or fallback or ""))
-	return ICONS[key] or tostring(value or "•"):sub(1, 1)
-end
-
 local function getGuiParent()
 	local ok, holder = pcall(function()
 		if type(gethui) == "function" then
@@ -91,6 +86,92 @@ local function addText(parent, value, size, color, properties)
 	end
 
 	return create("TextLabel", textProperties, parent)
+end
+
+local function iconLine(parent, position, size, rotation)
+	local line = create("Frame", {
+		Position = position,
+		Size = size,
+		BackgroundColor3 = COLORS.Muted,
+		BorderSizePixel = 0,
+		Rotation = rotation or 0,
+		ZIndex = 6,
+	}, parent)
+	addCorner(line, 1)
+	return line
+end
+
+local function createIcon(parent, value)
+	local key = string.lower(tostring(value or ""))
+	local holder = create("Frame", {
+		Size = UDim2.fromOffset(19, 19),
+		BackgroundTransparency = 1,
+		ZIndex = 6,
+	}, parent)
+
+	if key == "activity" or key == "monitor" then
+		local ring = create("Frame", {
+			Position = UDim2.fromOffset(4, 4),
+			Size = UDim2.fromOffset(11, 11),
+			BackgroundTransparency = 1,
+			ZIndex = 6,
+		}, holder)
+		addCorner(ring, 8)
+		addStroke(ring, COLORS.Muted)
+		local center = create("Frame", {
+			Position = UDim2.fromOffset(7, 7),
+			Size = UDim2.fromOffset(5, 5),
+			BackgroundTransparency = 1,
+			ZIndex = 7,
+		}, holder)
+		addCorner(center, 4)
+		addStroke(center, COLORS.Muted)
+		iconLine(holder, UDim2.fromOffset(9, 1), UDim2.fromOffset(1, 4))
+		iconLine(holder, UDim2.fromOffset(9, 14), UDim2.fromOffset(1, 4))
+		iconLine(holder, UDim2.fromOffset(1, 9), UDim2.fromOffset(4, 1))
+		iconLine(holder, UDim2.fromOffset(14, 9), UDim2.fromOffset(4, 1))
+	elseif key == "eye" or key == "visuals" then
+		iconLine(holder, UDim2.fromOffset(2, 9), UDim2.fromOffset(8, 1), 28)
+		iconLine(holder, UDim2.fromOffset(9, 5), UDim2.fromOffset(8, 1), -28)
+		iconLine(holder, UDim2.fromOffset(2, 9), UDim2.fromOffset(8, 1), -28)
+		iconLine(holder, UDim2.fromOffset(9, 13), UDim2.fromOffset(8, 1), 28)
+		local pupil = create("Frame", {
+			Position = UDim2.fromOffset(7, 7),
+			Size = UDim2.fromOffset(5, 5),
+			BackgroundTransparency = 1,
+			ZIndex = 7,
+		}, holder)
+		addCorner(pupil, 4)
+		addStroke(pupil, COLORS.Muted)
+	elseif key == "settings" or key == "misc" then
+		for index, y in ipairs({4, 9, 14}) do
+			iconLine(holder, UDim2.fromOffset(2, y), UDim2.fromOffset(15, 1))
+			local knob = create("Frame", {
+				Position = UDim2.fromOffset(index == 1 and 6 or index == 2 and 11 or 4, y - 2),
+				Size = UDim2.fromOffset(5, 5),
+				BackgroundColor3 = COLORS.Background,
+				ZIndex = 7,
+			}, holder)
+			addCorner(knob, 4)
+			addStroke(knob, COLORS.Muted)
+		end
+	else
+		iconLine(holder, UDim2.fromOffset(5, 4), UDim2.fromOffset(1, 12), 0)
+		iconLine(holder, UDim2.fromOffset(13, 4), UDim2.fromOffset(1, 12), 0)
+		iconLine(holder, UDim2.fromOffset(5, 9), UDim2.fromOffset(9, 1), 0)
+	end
+
+	return holder
+end
+
+local function setIconColor(holder, color)
+	for _, descendant in ipairs(holder:GetDescendants()) do
+		if descendant:IsA("UIStroke") then
+			descendant.Color = color
+		elseif descendant:IsA("Frame") and descendant.BackgroundTransparency < 1 then
+			descendant.BackgroundColor3 = color
+		end
+	end
 end
 
 local function copyOptions(source)
@@ -402,7 +483,7 @@ function Library.new(config)
 			Size = UDim2.fromOffset(44, 40),
 			BackgroundColor3 = COLORS.PanelRaised,
 			BackgroundTransparency = 1,
-			Text = iconGlyph(data.Icon, tab.Name),
+			Text = "",
 			TextColor3 = COLORS.Muted,
 			TextSize = 19,
 			Font = Enum.Font.GothamSemibold,
@@ -412,6 +493,7 @@ function Library.new(config)
 			ZIndex = 4,
 		}, tabs)
 		addCorner(tab._button, 6)
+		tab._icon = createIcon(tab._button, data.Icon or tab.Name)
 		tab._activeLine = create("Frame", {
 			Position = UDim2.fromOffset(0, 9),
 			Size = UDim2.fromOffset(2, 22),
@@ -472,12 +554,14 @@ function Library.new(config)
 			if not tab._page.Visible then
 				tab._button.BackgroundTransparency = 0.9
 				tab._button.TextColor3 = COLORS.Text
+				setIconColor(tab._icon, COLORS.Text)
 			end
 		end)
 		connect(tab._button.MouseLeave, function()
 			if not tab._page.Visible then
 				tab._button.BackgroundTransparency = 1
 				tab._button.TextColor3 = COLORS.Muted
+				setIconColor(tab._icon, COLORS.Muted)
 			end
 		end)
 		connect(tab._button.MouseButton1Click, function()
@@ -516,7 +600,7 @@ function Library.new(config)
 				Position = UDim2.fromOffset(11, 0),
 				Size = UDim2.new(1, -22, 0, 32),
 				TextYAlignment = Enum.TextYAlignment.Center,
-				Font = Enum.Font.GothamBold,
+				Font = Enum.Font.GothamSemibold,
 				ZIndex = 4,
 			})
 			section._list = create("Frame", {
@@ -535,18 +619,19 @@ function Library.new(config)
 
 			function section:_row(name, rowHeight)
 				local row = create("Frame", {
-					Size = UDim2.new(1, 0, 0, rowHeight or 38),
+					Size = UDim2.new(1, 0, 0, rowHeight or 40),
 					BackgroundColor3 = COLORS.Panel,
 					BackgroundTransparency = 0,
 					BorderSizePixel = 0,
 					ClipsDescendants = false,
 					ZIndex = 5,
 				}, self._list)
-				addText(row, name, 11, COLORS.Muted, {
+				addText(row, name, 12, COLORS.Muted, {
 					Position = UDim2.fromOffset(11, 0),
 					Size = UDim2.new(1, -155, 1, 0),
 					TextYAlignment = Enum.TextYAlignment.Center,
 					TextTruncate = Enum.TextTruncate.AtEnd,
+					Font = Enum.Font.GothamSemibold,
 					ZIndex = 6,
 				})
 				return row
@@ -649,8 +734,8 @@ function Library.new(config)
 				}, row)
 				local function set(nextValue, fire)
 					value = nextValue == true
-					button.BackgroundColor3 = value and Color3.fromRGB(38, 38, 43) or COLORS.Background
-					knob.BackgroundColor3 = value and COLORS.Background or COLORS.Muted
+					button.BackgroundColor3 = value and Color3.fromRGB(36, 36, 42) or COLORS.Background
+					knob.BackgroundColor3 = value and COLORS.Text or COLORS.Muted
 					knob.Position = value
 						and UDim2.new(1, -15, 0.5, -5)
 						or UDim2.fromOffset(3, 4)
@@ -814,7 +899,7 @@ function Library.new(config)
 					Position = UDim2.new(1, -136, 0.5, -15),
 					Size = UDim2.fromOffset(124, 30),
 					BackgroundColor3 = COLORS.Background,
-					Text = tostring(value or "Select"),
+					Text = "  " .. tostring(value or "Select"),
 					TextColor3 = COLORS.Text,
 					TextSize = 11,
 					Font = Enum.Font.GothamSemibold,
@@ -824,13 +909,10 @@ function Library.new(config)
 				}, row)
 				addCorner(button, 5)
 				addStroke(button, COLORS.Line)
-				addText(button, "⌄", 11, COLORS.Muted, {
-					Position = UDim2.new(1, -22, 0, 0),
-					Size = UDim2.fromOffset(16, 30),
-					TextXAlignment = Enum.TextXAlignment.Center,
-					TextYAlignment = Enum.TextYAlignment.Center,
-					ZIndex = 9,
-				})
+				local arrowLeft = iconLine(button, UDim2.new(1, -18, 0.5, -1), UDim2.fromOffset(6, 1), 45)
+				local arrowRight = iconLine(button, UDim2.new(1, -14, 0.5, -1), UDim2.fromOffset(6, 1), -45)
+				arrowLeft.ZIndex = 9
+				arrowRight.ZIndex = 9
 				local menu = create("Frame", {
 					Position = UDim2.new(0, 0, 1, 3),
 					Size = UDim2.new(1, 0, 0, math.max(#values * 25 + 6, 30)),
@@ -849,7 +931,7 @@ function Library.new(config)
 						for _, item in ipairs(values) do
 							if item == nextValue then
 								value = nextValue
-								button.Text = tostring(value)
+								button.Text = "  " .. tostring(value)
 								safeCallback(data.Callback, value, control)
 								return
 							end
@@ -961,6 +1043,7 @@ function Library.new(config)
 			tab._activeLine.Visible = active
 			tab._button.BackgroundTransparency = active and 0.88 or 1
 			tab._button.TextColor3 = active and COLORS.Text or COLORS.Muted
+			setIconColor(tab._icon, active and COLORS.Text or COLORS.Muted)
 		end
 	end
 
