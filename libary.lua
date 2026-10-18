@@ -16,6 +16,22 @@ local COLORS = {
 	Accent = Color3.fromRGB(235, 235, 240),
 }
 
+local ICONS = {
+	activity = "◎",
+	eye = "◉",
+	settings = "☷",
+	save = "◫",
+	monitor = "◎",
+	visuals = "◉",
+	misc = "☷",
+	config = "⌘",
+}
+
+local function iconGlyph(value, fallback)
+	local key = string.lower(tostring(value or fallback or ""))
+	return ICONS[key] or tostring(value or "•"):sub(1, 1)
+end
+
 local function getGuiParent()
 	local ok, holder = pcall(function()
 		if type(gethui) == "function" then
@@ -112,8 +128,8 @@ local function resolveSize(config)
 		return UDim2.fromOffset(config.Size.X, config.Size.Y), config.Size.X, config.Size.Y
 	end
 
-	local width = tonumber(config.Width) or 780
-	local height = tonumber(config.Height) or 500
+	local width = tonumber(config.Width) or 860
+	local height = tonumber(config.Height) or 560
 	return UDim2.fromOffset(width, height), width, height
 end
 
@@ -132,6 +148,15 @@ end
 local function keyName(value)
 	local key = keyCodeFrom(value)
 	return key == Enum.KeyCode.Unknown and "None" or key.Name
+end
+
+local function controlName(options, fallback)
+	local name = options.Name or fallback
+	local bind = options.Keybind or options.Hotkey or options.Key
+	if bind then
+		return tostring(name) .. "  [" .. keyName(bind) .. "]"
+	end
+	return name
 end
 
 local function safeCallback(callback, value, control)
@@ -193,20 +218,25 @@ function Library.new(config)
 		Color = ColorSequence.new(COLORS.Panel, COLORS.Background),
 		Rotation = 90,
 	}, self.Window)
+	local accentLine = create("Frame", {
+		Size = UDim2.new(1, 0, 0, 2),
+		BackgroundColor3 = COLORS.Accent,
+		BorderSizePixel = 0,
+		ZIndex = 20,
+	}, self.Window)
+	create("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, COLORS.Text),
+			ColorSequenceKeypoint.new(0.55, COLORS.Muted),
+			ColorSequenceKeypoint.new(1, COLORS.Background),
+		}),
+	}, accentLine)
 
 	local topBar = create("Frame", {
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.fromOffset(0, 0),
 		BackgroundTransparency = 1,
-		Active = true,
-		ZIndex = 5,
+		Visible = false,
 	}, self.Window)
-	addText(topBar, config.Title or config.Name or "LIBRARY", 12, COLORS.Text, {
-		Position = UDim2.fromOffset(16, 0),
-		Size = UDim2.new(1, -78, 1, 0),
-		TextYAlignment = Enum.TextYAlignment.Center,
-		Font = Enum.Font.GothamBold,
-		ZIndex = 6,
-	})
 
 	local closeButton = create("TextButton", {
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -218,34 +248,51 @@ function Library.new(config)
 		TextSize = 16,
 		Font = Enum.Font.Gotham,
 		AutoButtonColor = false,
-		ZIndex = 7,
+		Visible = false,
 	}, topBar)
 	addCorner(closeButton, 5)
 
 	local sidebar = create("Frame", {
-		Position = UDim2.fromOffset(0, 40),
-		Size = UDim2.new(0, 150, 1, -40),
+		Position = UDim2.fromOffset(0, 0),
+		Size = UDim2.new(0, 72, 1, 0),
 		BackgroundColor3 = COLORS.Background,
 		BorderSizePixel = 0,
 		ZIndex = 2,
 	}, self.Window)
+	local brand = addText(sidebar, config.Title or "f4_byte", 11, COLORS.Text, {
+		Position = UDim2.fromOffset(11, 12),
+		Size = UDim2.fromOffset(50, 20),
+		Font = Enum.Font.GothamBold,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		Active = true,
+		ZIndex = 6,
+	})
 	local tabs = create("ScrollingFrame", {
-		Position = UDim2.fromOffset(10, 12),
-		Size = UDim2.new(1, -20, 1, -20),
+		Position = UDim2.fromOffset(0, 58),
+		Size = UDim2.new(1, 0, 1, -70),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 0,
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		CanvasSize = UDim2.new(0, 0, 0, 0),
 		ZIndex = 3,
 	}, sidebar)
 	create("UIListLayout", {
-		Padding = UDim.new(0, 5),
+		Padding = UDim.new(0, 4),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 	}, tabs)
+	create("Frame", {
+		Position = UDim2.new(1, -1, 0, 0),
+		Size = UDim2.new(0, 1, 1, 0),
+		BackgroundColor3 = COLORS.Line,
+		BorderSizePixel = 0,
+		ZIndex = 4,
+	}, sidebar)
 
 	local content = create("Frame", {
-		Position = UDim2.fromOffset(150, 40),
-		Size = UDim2.new(1, -150, 1, -40),
+		Position = UDim2.fromOffset(72, 0),
+		Size = UDim2.new(1, -72, 1, 0),
 		BackgroundTransparency = 1,
 		ClipsDescendants = false,
 		ZIndex = 1,
@@ -281,7 +328,7 @@ function Library.new(config)
 	local dragStart
 	local windowStart
 
-	connect(topBar.InputBegan, function(input)
+	connect(brand.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1
 			or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
@@ -352,18 +399,27 @@ function Library.new(config)
 		}
 
 		tab._button = create("TextButton", {
-			Size = UDim2.new(1, 0, 0, 36),
+			Size = UDim2.fromOffset(44, 40),
 			BackgroundColor3 = COLORS.PanelRaised,
 			BackgroundTransparency = 1,
-			Text = "  " .. tostring(data.Icon or "") .. "  " .. tostring(tab.Name),
+			Text = iconGlyph(data.Icon, tab.Name),
 			TextColor3 = COLORS.Muted,
-			TextSize = 11,
+			TextSize = 19,
 			Font = Enum.Font.GothamSemibold,
-			TextXAlignment = Enum.TextXAlignment.Left,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Center,
 			AutoButtonColor = false,
 			ZIndex = 4,
 		}, tabs)
 		addCorner(tab._button, 6)
+		tab._activeLine = create("Frame", {
+			Position = UDim2.fromOffset(0, 9),
+			Size = UDim2.fromOffset(2, 22),
+			BackgroundColor3 = COLORS.Text,
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = 5,
+		}, tab._button)
 
 		tab._page = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(12, 12),
@@ -414,7 +470,7 @@ function Library.new(config)
 		table.insert(self._tabs, tab)
 		connect(tab._button.MouseEnter, function()
 			if not tab._page.Visible then
-				tab._button.BackgroundTransparency = 0.78
+				tab._button.BackgroundTransparency = 0.9
 				tab._button.TextColor3 = COLORS.Text
 			end
 		end)
@@ -480,13 +536,13 @@ function Library.new(config)
 			function section:_row(name, rowHeight)
 				local row = create("Frame", {
 					Size = UDim2.new(1, 0, 0, rowHeight or 38),
-					BackgroundColor3 = COLORS.PanelRaised,
-					BackgroundTransparency = 0.35,
+					BackgroundColor3 = COLORS.Panel,
+					BackgroundTransparency = 0,
 					BorderSizePixel = 0,
 					ClipsDescendants = false,
 					ZIndex = 5,
 				}, self._list)
-				addText(row, name, 11, COLORS.Text, {
+				addText(row, name, 11, COLORS.Muted, {
 					Position = UDim2.fromOffset(11, 0),
 					Size = UDim2.new(1, -155, 1, 0),
 					TextYAlignment = Enum.TextYAlignment.Center,
@@ -516,7 +572,7 @@ function Library.new(config)
 
 			function section:Button(nameOrOptions, callback)
 				local data = parseOptions(nameOrOptions, callback)
-				local row = self:_row(data.Name or "Button")
+				local row = self:_row(controlName(data, "Button"))
 				local control
 
 				local button = create("TextButton", {
@@ -562,10 +618,10 @@ function Library.new(config)
 					value = data.Default == true
 				end
 
-				local row = self:_row(data.Name or "Toggle")
+				local row = self:_row(controlName(data, "Toggle"))
 				local button = create("TextButton", {
-					Position = UDim2.new(1, -51, 0.5, -9),
-					Size = UDim2.fromOffset(38, 18),
+					Position = UDim2.new(1, -44, 0.5, -10),
+					Size = UDim2.fromOffset(34, 19),
 					BackgroundColor3 = COLORS.Background,
 					Text = "",
 					AutoButtonColor = false,
@@ -575,20 +631,31 @@ function Library.new(config)
 				addStroke(button, COLORS.Line)
 
 				local knob = create("Frame", {
-					Size = UDim2.fromOffset(12, 12),
+					Size = UDim2.fromOffset(11, 11),
 					BorderSizePixel = 0,
 					ZIndex = 8,
 				}, button)
 				addCorner(knob, 4)
 
 				local control
+				local rowLabel = row:FindFirstChildOfClass("TextLabel")
+				local rowIndicator = create("Frame", {
+					Position = UDim2.fromOffset(0, 8),
+					Size = UDim2.fromOffset(2, 22),
+					BackgroundColor3 = COLORS.Text,
+					BorderSizePixel = 0,
+					Visible = false,
+					ZIndex = 7,
+				}, row)
 				local function set(nextValue, fire)
 					value = nextValue == true
-					button.BackgroundColor3 = value and COLORS.Accent or COLORS.Background
+					button.BackgroundColor3 = value and Color3.fromRGB(38, 38, 43) or COLORS.Background
 					knob.BackgroundColor3 = value and COLORS.Background or COLORS.Muted
 					knob.Position = value
-						and UDim2.new(1, -16, 0.5, -6)
-						or UDim2.fromOffset(4, 3)
+						and UDim2.new(1, -15, 0.5, -5)
+						or UDim2.fromOffset(3, 4)
+					rowIndicator.Visible = value
+					rowLabel.TextColor3 = value and COLORS.Text or COLORS.Muted
 
 					if fire then
 						safeCallback(data.Callback, value, control)
@@ -625,31 +692,48 @@ function Library.new(config)
 					minimum, maximum = maximum, minimum
 				end
 
-				local row = self:_row(data.Name or "Slider")
+				local row = self:_row(controlName(data, "Slider"))
 				local valueLabel = addText(row, "", 10, COLORS.Muted, {
-					Position = UDim2.new(1, -38, 0.5, -10),
-					Size = UDim2.fromOffset(32, 20),
+					Position = UDim2.new(1, -145, 0.5, -10),
+					Size = UDim2.fromOffset(52, 20),
 					TextXAlignment = Enum.TextXAlignment.Right,
 					TextYAlignment = Enum.TextYAlignment.Center,
 					ZIndex = 7,
 				})
 				local bar = create("Frame", {
-					Position = UDim2.new(1, -130, 0.5, -4),
-					Size = UDim2.fromOffset(86, 8),
-					BackgroundColor3 = COLORS.Background,
+					Position = UDim2.new(1, -88, 0.5, -12),
+					Size = UDim2.fromOffset(86, 24),
+					BackgroundColor3 = COLORS.PanelRaised,
 					BorderSizePixel = 0,
 					Active = true,
 					ZIndex = 7,
 				}, row)
-				addCorner(bar, 4)
-
-				local fill = create("Frame", {
-					Size = UDim2.new(0, 0, 1, 0),
-					BackgroundColor3 = COLORS.Accent,
+				addCorner(bar, 5)
+				addStroke(bar, COLORS.Line)
+				create("Frame", {
+					Position = UDim2.fromOffset(8, 11),
+					Size = UDim2.new(1, -16, 0, 2),
+					BackgroundColor3 = COLORS.Line,
 					BorderSizePixel = 0,
 					ZIndex = 8,
 				}, bar)
-				addCorner(fill, 4)
+				local thumb = create("Frame", {
+					Position = UDim2.new(0, 7, 0.5, -8),
+					Size = UDim2.fromOffset(2, 15),
+					BackgroundColor3 = COLORS.Text,
+					BorderSizePixel = 0,
+					ZIndex = 9,
+				}, bar)
+				for index = 0, 6 do
+					local tickHeight = (index == 0 or index == 6) and 10 or 8
+					create("Frame", {
+						Position = UDim2.new(index / 6, 0, 0.5, -4),
+						Size = UDim2.fromOffset(2, tickHeight),
+						BackgroundColor3 = COLORS.LineBright,
+						BorderSizePixel = 0,
+						ZIndex = 8,
+					}, bar)
+				end
 
 				local value = initial
 				local control
@@ -661,8 +745,8 @@ function Library.new(config)
 						maximum
 					)
 					local ratio = (value - minimum) / math.max(maximum - minimum, 0.0001)
-					fill.Size = UDim2.new(ratio, 0, 1, 0)
-					valueLabel.Text = formatNumber(value) .. tostring(data.Unit or "")
+					thumb.Position = UDim2.new(ratio, 7 - math.floor(ratio * 16), 0.5, -8)
+					valueLabel.Text = "[" .. formatNumber(value) .. tostring(data.Unit or "") .. "]"
 
 					if fire then
 						safeCallback(data.Callback, value, control)
@@ -690,8 +774,8 @@ function Library.new(config)
 					endConnection = nil
 				end
 				local function updateFromX(x)
-					local width = math.max(bar.AbsoluteSize.X, 1)
-					local ratio = math.clamp((x - bar.AbsolutePosition.X) / width, 0, 1)
+					local width = math.max(bar.AbsoluteSize.X - 16, 1)
+					local ratio = math.clamp((x - bar.AbsolutePosition.X - 8) / width, 0, 1)
 					set(minimum + (maximum - minimum) * ratio, true)
 				end
 				connect(bar.InputBegan, function(input)
@@ -725,20 +809,28 @@ function Library.new(config)
 				local data = parseOptions(nameOrOptions, callback)
 				local values = data.Options or data.Values or {}
 				local value = data.CurrentOption or data.Default or values[1]
-				local row = self:_row(data.Name or "Dropdown")
+				local row = self:_row(controlName(data, "Dropdown"))
 				local button = create("TextButton", {
-					Position = UDim2.new(1, -130, 0.5, -13),
-					Size = UDim2.fromOffset(118, 26),
+					Position = UDim2.new(1, -136, 0.5, -15),
+					Size = UDim2.fromOffset(124, 30),
 					BackgroundColor3 = COLORS.Background,
 					Text = tostring(value or "Select"),
 					TextColor3 = COLORS.Text,
-					TextSize = 10,
+					TextSize = 11,
 					Font = Enum.Font.GothamSemibold,
+					TextXAlignment = Enum.TextXAlignment.Left,
 					AutoButtonColor = false,
 					ZIndex = 8,
 				}, row)
 				addCorner(button, 5)
 				addStroke(button, COLORS.Line)
+				addText(button, "⌄", 11, COLORS.Muted, {
+					Position = UDim2.new(1, -22, 0, 0),
+					Size = UDim2.fromOffset(16, 30),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					ZIndex = 9,
+				})
 				local menu = create("Frame", {
 					Position = UDim2.new(0, 0, 1, 3),
 					Size = UDim2.new(1, 0, 0, math.max(#values * 25 + 6, 30)),
@@ -866,7 +958,8 @@ function Library.new(config)
 		for _, tab in ipairs(self._tabs) do
 			local active = tab == activeTab
 			tab._page.Visible = active
-			tab._button.BackgroundTransparency = active and 0.12 or 1
+			tab._activeLine.Visible = active
+			tab._button.BackgroundTransparency = active and 0.88 or 1
 			tab._button.TextColor3 = active and COLORS.Text or COLORS.Muted
 		end
 	end
