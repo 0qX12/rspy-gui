@@ -142,6 +142,15 @@ local function displayName(value)
 	return tostring(value or "Remote")
 end
 
+local SETTING_DESCRIPTIONS = {
+	["Function info"] = "Show return values and argument details",
+	["Autoblock"] = "Block matching remotes automatically",
+	["Logcheckcaller"] = "Include calls from the local caller",
+	["Advanced info"] = "Display extra call metadata",
+	["Banned remotes"] = "Review remotes hidden from the log",
+	["Clear logs"] = "Remove every captured entry",
+}
+
 function Library.new(config)
 	config = config or {}
 
@@ -179,45 +188,7 @@ function Library.new(config)
 		ZIndex = 2,
 	}, self.Gui)
 	addCorner(self.Window, 9)
-	addStroke(self.Window, COLORS.Line)
 	addGradient(self.Window, Color3.fromRGB(20, 20, 26), COLORS.Background, 90)
-
-	local shadow = create("Frame", {
-		Size = UDim2.new(windowSize.X.Scale, windowSize.X.Offset + 20, windowSize.Y.Scale, windowSize.Y.Offset + 20),
-		Position = UDim2.new(0.5, -width / 2 - 10, 0.5, -height / 2 - 10),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.54,
-		BorderSizePixel = 0,
-		ZIndex = 1,
-	}, self.Gui)
-	addCorner(shadow, 16)
-	local shadowStroke = addStroke(shadow, Color3.new(0, 0, 0), 0.58)
-	shadowStroke.Thickness = 10
-
-	local halo = create("Frame", {
-		Size = windowSize,
-		Position = self.Window.Position,
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ZIndex = 1,
-	}, self.Gui)
-	addCorner(halo, 9)
-	local haloStroke = addStroke(halo, COLORS.LineBright, 0.88)
-	haloStroke.Thickness = 2
-	self._shadow = shadow
-	self._halo = halo
-
-	local function syncWindowDecor()
-		local position = self.Window.Position
-		shadow.Position = UDim2.new(
-			position.X.Scale,
-			position.X.Offset - 10,
-			position.Y.Scale,
-			position.Y.Offset - 10
-		)
-		halo.Position = position
-	end
-	syncWindowDecor()
 	local windowScale = create("UIScale", {Scale = 0.97}, self.Window)
 	TweenService:Create(windowScale, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 		Scale = 1,
@@ -329,7 +300,6 @@ function Library.new(config)
 				windowStart.Y.Scale,
 				windowStart.Y.Offset + delta.Y
 			)
-			syncWindowDecor()
 		end
 	end)
 	connect(UserInputService.InputEnded, function(input)
@@ -385,6 +355,7 @@ function Library.new(config)
 			_logs = {},
 			_banned = {},
 			_settings = {},
+			_settingOrder = 0,
 			_selected = nil,
 			_contextTarget = nil,
 			_library = self,
@@ -522,26 +493,39 @@ function Library.new(config)
 			ZIndex = 8,
 			Visible = false,
 		}, root)
-		addStroke(settingsPanel, COLORS.Line, 0.1)
 		addGradient(settingsPanel, Color3.fromRGB(24, 24, 30), Color3.fromRGB(12, 12, 16), 90)
-		addText(settingsPanel, "settings", 10, COLORS.Text, {
-			Position = UDim2.fromOffset(13, 7),
-			Size = UDim2.new(1, -26, 0, 22),
+		addText(settingsPanel, "settings", 14, COLORS.Text, {
+			Position = UDim2.fromOffset(24, 12),
+			Size = UDim2.new(1, -120, 0, 24),
 			Font = FONTS.Bold,
 			ZIndex = 9,
 		})
+		addText(settingsPanel, "RemoteSpy configuration", 10, COLORS.Muted, {
+			Position = UDim2.fromOffset(24, 37),
+			Size = UDim2.new(1, -150, 0, 18),
+			Font = FONTS.Medium,
+			ZIndex = 9,
+		})
+		create("Frame", {
+			Position = UDim2.fromOffset(24, 67),
+			Size = UDim2.new(1, -48, 0, 1),
+			BackgroundColor3 = COLORS.Line,
+			BorderSizePixel = 0,
+			ZIndex = 9,
+		}, settingsPanel)
 		local settingsClose = create("TextButton", {
-			Position = UDim2.new(1, -34, 0, 6),
-			Size = UDim2.fromOffset(22, 22),
+			Position = UDim2.new(1, -54, 0, 14),
+			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = COLORS.Control,
 			Text = "×",
 			TextColor3 = COLORS.Muted,
-			TextSize = 13,
+			TextSize = 16,
 			Font = FONTS.Medium,
 			AutoButtonColor = false,
 			ZIndex = 10,
 		}, settingsPanel)
-		addCorner(settingsClose, 4)
+		addCorner(settingsClose, 6)
+		addStroke(settingsClose, COLORS.Line, 0.25)
 		connect(settingsClose.MouseEnter, function()
 			TweenService:Create(settingsClose, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.PanelRaised,
@@ -556,8 +540,8 @@ function Library.new(config)
 		end)
 		local settingsScale = create("UIScale", {Scale = 0.985}, settingsPanel)
 		local settingsList = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(9, 36),
-			Size = UDim2.new(1, -18, 1, -43),
+			Position = UDim2.fromOffset(24, 82),
+			Size = UDim2.new(1, -48, 1, -112),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 4,
@@ -566,8 +550,12 @@ function Library.new(config)
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 9,
 		}, settingsPanel)
-		create("UIListLayout", {
-			Padding = UDim.new(0, 5),
+		create("UIGridLayout", {
+			CellSize = UDim2.new(0.5, -6, 0, 62),
+			CellPadding = UDim2.fromOffset(12, 10),
+			FillDirection = Enum.FillDirection.Horizontal,
+			FillDirectionMaxCells = 2,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, settingsList)
 		local function showSettings()
@@ -979,19 +967,32 @@ function Library.new(config)
 
 		function view:AddSetting(name, callback, settingOptions)
 			settingOptions = settingOptions or {}
+			view._settingOrder += 1
+			local description = settingOptions.Description
+				or SETTING_DESCRIPTIONS[tostring(name)]
+				or "Configure this RemoteSpy option"
 			local row = create("Frame", {
-				Size = UDim2.new(1, 0, 0, 34),
+				Size = UDim2.new(1, 0, 0, 62),
 				BackgroundColor3 = COLORS.Panel,
 				BorderSizePixel = 0,
+				LayoutOrder = view._settingOrder,
 				ZIndex = 10,
 			}, settingsList)
-			addCorner(row, 4)
-			addStroke(row, COLORS.Line, 0.4)
+			addCorner(row, 7)
+			addStroke(row, COLORS.Line, 0.48)
 			addGradient(row, Color3.fromRGB(25, 25, 31), Color3.fromRGB(17, 17, 22), 90)
-			addText(row, name, 11, COLORS.Muted, {
-				Position = UDim2.fromOffset(9, 0),
-				Size = UDim2.new(1, -115, 1, 0),
-				TextYAlignment = Enum.TextYAlignment.Center,
+			addText(row, name, 11, COLORS.Text, {
+				Position = UDim2.fromOffset(14, 8),
+				Size = UDim2.new(1, -126, 0, 20),
+				TextYAlignment = Enum.TextYAlignment.Top,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Font = FONTS.Semibold,
+				ZIndex = 11,
+			})
+			addText(row, description, 9, COLORS.MutedDark, {
+				Position = UDim2.fromOffset(14, 31),
+				Size = UDim2.new(1, -126, 0, 18),
+				TextYAlignment = Enum.TextYAlignment.Top,
 				TextTruncate = Enum.TextTruncate.AtEnd,
 				Font = FONTS.Medium,
 				ZIndex = 11,
@@ -1000,21 +1001,21 @@ function Library.new(config)
 			if settingOptions.Type == "toggle" then
 				local state = settingOptions.Default == true
 				local toggle = create("TextButton", {
-					Position = UDim2.new(1, -42, 0.5, -9),
-					Size = UDim2.fromOffset(34, 18),
+					Position = UDim2.new(1, -52, 0.5, -10),
+					Size = UDim2.fromOffset(38, 20),
 					BackgroundColor3 = COLORS.Control,
 					Text = "",
 					AutoButtonColor = false,
 					ZIndex = 12,
 				}, row)
-				addCorner(toggle, 6)
+				addCorner(toggle, 8)
 				addStroke(toggle, COLORS.Line)
 				local knob = create("Frame", {
-					Size = UDim2.fromOffset(10, 10),
+					Size = UDim2.fromOffset(12, 12),
 					BorderSizePixel = 0,
 					ZIndex = 13,
 				}, toggle)
-				addCorner(knob, 4)
+				addCorner(knob, 6)
 				local control
 				local function set(value, fire)
 					state = value == true
@@ -1023,7 +1024,7 @@ function Library.new(config)
 					}):Play()
 					TweenService:Create(knob, TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 						BackgroundColor3 = state and COLORS.Text or COLORS.Muted,
-						Position = state and UDim2.new(1, -14, 0.5, -5) or UDim2.fromOffset(3, 4),
+						Position = state and UDim2.new(1, -16, 0.5, -6) or UDim2.fromOffset(4, 4),
 					}):Play()
 					if fire then
 						safeCallback(callback, state, view)
@@ -1046,8 +1047,8 @@ function Library.new(config)
 			end
 
 			local button = create("TextButton", {
-				Position = UDim2.new(1, -78, 0.5, -10),
-				Size = UDim2.fromOffset(68, 20),
+				Position = UDim2.new(1, -96, 0.5, -13),
+				Size = UDim2.fromOffset(84, 26),
 				BackgroundColor3 = COLORS.Control,
 				Text = settingOptions.Value or "open",
 				TextColor3 = COLORS.Text,
