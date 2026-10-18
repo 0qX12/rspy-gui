@@ -313,7 +313,31 @@ function Library.new(config)
 		BorderSizePixel = 0,
 		Active = true,
 		ClipsDescendants = true,
+		ZIndex = 2,
 	}, self.Gui)
+	local haloOuter = create("Frame", {
+		Size = UDim2.fromOffset(width + 22, height + 22),
+		Position = UDim2.new(0.5, -width / 2 - 11, 0.5, -height / 2 - 11),
+		BackgroundTransparency = 1,
+		ZIndex = 0,
+	}, self.Gui)
+	addCorner(haloOuter, 15)
+	local haloOuterStroke = addStroke(haloOuter, COLORS.Text, 0.965)
+	haloOuterStroke.Thickness = 11
+	local haloInner = create("Frame", {
+		Size = UDim2.fromOffset(width + 8, height + 8),
+		Position = UDim2.new(0.5, -width / 2 - 4, 0.5, -height / 2 - 4),
+		BackgroundTransparency = 1,
+		ZIndex = 1,
+	}, self.Gui)
+	addCorner(haloInner, 11)
+	local haloInnerStroke = addStroke(haloInner, COLORS.Text, 0.90)
+	haloInnerStroke.Thickness = 4
+	local function syncHalo()
+		local position = self.Window.Position
+		haloOuter.Position = UDim2.new(position.X.Scale, position.X.Offset - 11, position.Y.Scale, position.Y.Offset - 11)
+		haloInner.Position = UDim2.new(position.X.Scale, position.X.Offset - 4, position.Y.Scale, position.Y.Offset - 4)
+	end
 	addCorner(self.Window, 9)
 	addStroke(self.Window, COLORS.Line)
 	create("UIGradient", {
@@ -472,6 +496,7 @@ function Library.new(config)
 				windowStart.Y.Scale,
 				windowStart.Y.Offset + delta.Y
 			)
+			syncHalo()
 		end
 	end)
 	connect(UserInputService.InputEnded, function(input)
@@ -533,7 +558,8 @@ function Library.new(config)
 		}
 		local root = create("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
-			BackgroundTransparency = 1,
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
+			BorderSizePixel = 0,
 			ClipsDescendants = true,
 			ZIndex = 4,
 		}, self._content)
@@ -541,7 +567,7 @@ function Library.new(config)
 
 		local topBar = create("Frame", {
 			Size = UDim2.new(1, 0, 0, 30),
-			BackgroundColor3 = Color3.fromRGB(26, 26, 30),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ZIndex = 5,
 		}, root)
@@ -572,6 +598,13 @@ function Library.new(config)
 			ZIndex = 7,
 		}, topBar)
 		addCorner(close, 4)
+		create("Frame", {
+			Position = UDim2.fromOffset(0, 29),
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = Color3.fromRGB(29, 29, 35),
+			BorderSizePixel = 0,
+			ZIndex = 6,
+		}, topBar)
 		connect(close.MouseButton1Click, function()
 			self:Destroy()
 		end)
@@ -579,14 +612,14 @@ function Library.new(config)
 		local body = create("Frame", {
 			Position = UDim2.fromOffset(0, 30),
 			Size = UDim2.new(1, 0, 1, -30),
-			BackgroundColor3 = Color3.fromRGB(35, 35, 39),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 			ZIndex = 4,
 		}, root)
 		local logPanel = create("Frame", {
 			Size = UDim2.new(0, 165, 1, 0),
-			BackgroundColor3 = Color3.fromRGB(52, 52, 56),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ZIndex = 5,
 		}, body)
@@ -600,6 +633,13 @@ function Library.new(config)
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 6,
 		}, logPanel)
+		create("Frame", {
+			Position = UDim2.new(1, -1, 0, 0),
+			Size = UDim2.new(0, 1, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(29, 29, 35),
+			BorderSizePixel = 0,
+			ZIndex = 7,
+		}, logPanel)
 		create("UIListLayout", {
 			Padding = UDim.new(0, 3),
 			SortOrder = Enum.SortOrder.LayoutOrder,
@@ -608,17 +648,18 @@ function Library.new(config)
 		local detailPanel = create("Frame", {
 			Position = UDim2.fromOffset(165, 0),
 			Size = UDim2.new(1, -165, 1, 0),
-			BackgroundColor3 = Color3.fromRGB(35, 35, 39),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ZIndex = 5,
 		}, body)
 		local codeHeight = options.CodeHeight or 150
 		local codePanel = create("Frame", {
 			Size = UDim2.new(1, 0, 0, codeHeight),
-			BackgroundColor3 = Color3.fromRGB(29, 31, 40),
+			BackgroundColor3 = Color3.fromRGB(20, 20, 25),
 			BorderSizePixel = 0,
 			ZIndex = 6,
 		}, detailPanel)
+		addStroke(codePanel, Color3.fromRGB(36, 36, 43), 0.35)
 		addText(codePanel, "generated request", 9, COLORS.Muted, {
 			Position = UDim2.fromOffset(12, 8),
 			Size = UDim2.new(1, -24, 0, 16),
@@ -637,7 +678,7 @@ function Library.new(config)
 		local actions = create("ScrollingFrame", {
 			Position = UDim2.new(0, 0, 0, codeHeight),
 			Size = UDim2.new(1, 0, 1, -codeHeight),
-			BackgroundColor3 = Color3.fromRGB(35, 35, 39),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ScrollBarThickness = 3,
 			ScrollBarImageColor3 = COLORS.LineBright,
@@ -659,13 +700,15 @@ function Library.new(config)
 			local data = type(entry) == "table" and entry or {Name = tostring(entry)}
 			local row = create("TextButton", {
 				Size = UDim2.new(1, 0, 0, 28),
-				BackgroundColor3 = Color3.fromRGB(43, 43, 47),
+				BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 				Text = "",
 				AutoButtonColor = false,
 				ZIndex = 7,
 			}, logList)
+			addCorner(row, 4)
+			addStroke(row, Color3.fromRGB(36, 36, 43), 0.4)
 			create("Frame", {
-				Size = UDim2.new(0, 5, 1, 0),
+				Size = UDim2.new(0, 3, 1, 0),
 				BackgroundColor3 = data.Color or (data.Type == "function" and Color3.fromRGB(100, 90, 240) or Color3.fromRGB(255, 224, 0)),
 				BorderSizePixel = 0,
 				ZIndex = 8,
@@ -679,44 +722,49 @@ function Library.new(config)
 				ZIndex = 8,
 			})
 			connect(row.MouseEnter, function()
-				row.BackgroundColor3 = Color3.fromRGB(61, 61, 65)
+				row.BackgroundColor3 = Color3.fromRGB(27, 27, 32)
 			end)
 			connect(row.MouseLeave, function()
 				if view._selectedButton ~= row then
-					row.BackgroundColor3 = Color3.fromRGB(43, 43, 47)
+					row.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
 				end
 			end)
 			connect(row.MouseButton1Click, function()
 				if view._selectedButton then
-					view._selectedButton.BackgroundColor3 = Color3.fromRGB(43, 43, 47)
+					view._selectedButton.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
 				end
 				view._selectedButton = row
-				row.BackgroundColor3 = Color3.fromRGB(77, 77, 82)
+				row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
 				view:SetCode(data.Code or "-- no generated request")
 				safeCallback(data.Callback, data, view)
 			end)
 			table.insert(view._logs, row)
+			if #view._logs == 1 then
+				view._selectedButton = row
+				row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+				view:SetCode(data.Code or "-- no generated request")
+			end
 			return row
 		end
 
 		function view:AddAction(name, callback)
 			local button = create("TextButton", {
 				Size = UDim2.fromOffset(112, 28),
-				BackgroundColor3 = Color3.fromRGB(29, 29, 33),
+				BackgroundColor3 = COLORS.Control,
 				Text = tostring(name),
 				TextColor3 = COLORS.Text,
 				TextSize = 10,
-				Font = FONTS.Medium,
+				Font = FONTS.Semibold,
 				AutoButtonColor = false,
 				ZIndex = 7,
 			}, actions)
-			addCorner(button, 2)
-			addStroke(button, COLORS.LineBright)
+			addCorner(button, 5)
+			addStroke(button, COLORS.Line, 0.1)
 			connect(button.MouseEnter, function()
-				button.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+				button.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
 			end)
 			connect(button.MouseLeave, function()
-				button.BackgroundColor3 = Color3.fromRGB(29, 29, 33)
+				button.BackgroundColor3 = COLORS.Control
 			end)
 			connect(button.MouseButton1Click, function()
 				safeCallback(callback, button, view)
