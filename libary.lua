@@ -9,16 +9,16 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local COLORS = {
-	Background = Color3.fromRGB(10, 10, 13),
-	Panel = Color3.fromRGB(15, 15, 19),
-	PanelRaised = Color3.fromRGB(22, 22, 27),
-	Control = Color3.fromRGB(25, 25, 30),
-	Line = Color3.fromRGB(43, 43, 51),
-	LineBright = Color3.fromRGB(78, 78, 88),
-	Text = Color3.fromRGB(235, 235, 239),
-	Muted = Color3.fromRGB(125, 125, 135),
-	MutedDark = Color3.fromRGB(88, 88, 98),
-	Accent = Color3.fromRGB(235, 235, 240),
+	Background = Color3.fromRGB(9, 9, 12),
+	Panel = Color3.fromRGB(17, 17, 22),
+	PanelRaised = Color3.fromRGB(28, 28, 35),
+	Control = Color3.fromRGB(31, 31, 39),
+	Line = Color3.fromRGB(49, 49, 59),
+	LineBright = Color3.fromRGB(98, 98, 111),
+	Text = Color3.fromRGB(245, 245, 248),
+	Muted = Color3.fromRGB(148, 148, 160),
+	MutedDark = Color3.fromRGB(106, 106, 119),
+	Accent = Color3.fromRGB(245, 245, 248),
 	Event = Color3.fromRGB(238, 220, 40),
 	Function = Color3.fromRGB(115, 100, 240),
 }
@@ -416,8 +416,8 @@ function Library.new(config)
 		})
 
 		local settingsButton = create("TextButton", {
-			Position = UDim2.new(1, -92, 1, -36),
-			Size = UDim2.fromOffset(80, 27),
+			Position = UDim2.new(0, 9, 1, -36),
+			Size = UDim2.new(1, -19, 0, 27),
 			BackgroundColor3 = COLORS.Control,
 			Text = "settings",
 			TextColor3 = COLORS.Muted,
@@ -425,7 +425,7 @@ function Library.new(config)
 			Font = FONTS.Semibold,
 			AutoButtonColor = false,
 			ZIndex = 12,
-		}, detailPanel)
+		}, leftPanel)
 		addCorner(settingsButton, 5)
 		addStroke(settingsButton, COLORS.Line, 0.15)
 
@@ -506,31 +506,47 @@ function Library.new(config)
 		create("UIListLayout", {Padding = UDim.new(0, 3)}, contextList)
 
 		local bannedPanel = create("Frame", {
-			Position = UDim2.fromOffset(12, 46),
-			Size = UDim2.fromOffset(206, 270),
+			Position = UDim2.fromOffset(0, 0),
+			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = COLORS.Panel,
 			BorderSizePixel = 0,
 			Visible = false,
-			ZIndex = 35,
+			ClipsDescendants = true,
+			ZIndex = 30,
 		}, root)
-		addCorner(bannedPanel, 7)
 		addStroke(bannedPanel, COLORS.LineBright, 0.1)
 		addText(bannedPanel, "banned remotes", 10, COLORS.Text, {
-			Position = UDim2.fromOffset(11, 7),
-			Size = UDim2.new(1, -22, 0, 20),
+			Position = UDim2.fromOffset(18, 10),
+			Size = UDim2.new(1, -70, 0, 24),
 			Font = FONTS.Bold,
-			ZIndex = 36,
+			ZIndex = 31,
 		})
+		local bannedClose = create("TextButton", {
+			Position = UDim2.new(1, -38, 0, 7),
+			Size = UDim2.fromOffset(24, 24),
+			BackgroundColor3 = COLORS.Control,
+			Text = "×",
+			TextColor3 = COLORS.Muted,
+			TextSize = 13,
+			Font = FONTS.Medium,
+			AutoButtonColor = false,
+			ZIndex = 32,
+		}, bannedPanel)
+		addCorner(bannedClose, 4)
 		local bannedList = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(8, 34),
-			Size = UDim2.new(1, -16, 1, -42),
+			Position = UDim2.fromOffset(18, 52),
+			Size = UDim2.new(1, -36, 1, -70),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 3,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ZIndex = 36,
+			ZIndex = 31,
 		}, bannedPanel)
 		create("UIListLayout", {Padding = UDim.new(0, 4)}, bannedList)
+		connect(bannedClose.MouseButton1Click, function()
+			bannedPanel.Visible = false
+			settingsButton.Visible = true
+		end)
 
 		local function updateCount()
 			local visibleCount = 0
@@ -549,10 +565,12 @@ function Library.new(config)
 		local function selectTarget(target)
 			if view._selected and view._selected.row.Parent then
 				view._selected.row.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
+				view._selected.indicator.Visible = false
 			end
 
 			view._selected = target
-			target.row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+			target.row.BackgroundColor3 = Color3.fromRGB(38, 38, 46)
+			target.indicator.Visible = true
 			view:SetCode(target.data.Code or "-- no selected call", target.name)
 			safeCallback(target.data.Callback, target.data, view)
 		end
@@ -616,6 +634,12 @@ function Library.new(config)
 		function view:OpenBanned()
 			view:RefreshBanned()
 			bannedPanel.Visible = not bannedPanel.Visible
+			if bannedPanel.Visible then
+				settingsPanel.Visible = false
+				settingsButton.Visible = false
+			else
+				settingsButton.Visible = true
+			end
 			contextMenu.Visible = false
 		end
 
@@ -684,6 +708,14 @@ function Library.new(config)
 				BorderSizePixel = 0,
 				ZIndex = 8,
 			}, row)
+			local indicator = create("Frame", {
+				Position = UDim2.fromOffset(0, 6),
+				Size = UDim2.fromOffset(2, 20),
+				BackgroundColor3 = COLORS.Text,
+				BorderSizePixel = 0,
+				Visible = false,
+				ZIndex = 9,
+			}, row)
 			addText(row, remoteName, 10, COLORS.Text, {
 				Position = UDim2.fromOffset(12, 0),
 				Size = UDim2.new(1, -72, 1, 0),
@@ -692,7 +724,7 @@ function Library.new(config)
 				Font = FONTS.Medium,
 				ZIndex = 8,
 			})
-			local target = {data = data, name = remoteName, row = row}
+			local target = {data = data, name = remoteName, row = row, indicator = indicator}
 			connect(row.MouseEnter, function()
 				if view._selected ~= target then
 					row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
