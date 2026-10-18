@@ -319,6 +319,7 @@ function Library.new(config)
 		Size = UDim2.fromOffset(width + 22, height + 22),
 		Position = UDim2.new(0.5, -width / 2 - 11, 0.5, -height / 2 - 11),
 		BackgroundTransparency = 1,
+		Visible = false,
 		ZIndex = 0,
 	}, self.Gui)
 	addCorner(haloOuter, 15)
@@ -328,6 +329,7 @@ function Library.new(config)
 		Size = UDim2.fromOffset(width + 8, height + 8),
 		Position = UDim2.new(0.5, -width / 2 - 4, 0.5, -height / 2 - 4),
 		BackgroundTransparency = 1,
+		Visible = false,
 		ZIndex = 1,
 	}, self.Gui)
 	addCorner(haloInner, 11)
@@ -1484,7 +1486,7 @@ function Library.new(config)
 			ZIndex = 4,
 		}, root)
 		local leftPanel = create("Frame", {
-			Size = UDim2.new(0, 178, 1, 0),
+			Size = UDim2.new(0, 165, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ZIndex = 5,
@@ -1542,8 +1544,8 @@ function Library.new(config)
 		}, settingsList)
 
 		local detailPanel = create("Frame", {
-			Position = UDim2.fromOffset(178, 0),
-			Size = UDim2.new(1, -178, 1, 0),
+			Position = UDim2.fromOffset(165, 0),
+			Size = UDim2.new(1, -165, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
@@ -1715,19 +1717,80 @@ function Library.new(config)
 			view:Ban(data, row)
 		end)
 
-		function view:AddSetting(name, callback)
-			local button = create("TextButton", {
+		function view:AddSetting(name, callback, options)
+			options = options or {}
+			local row = create("Frame", {
 				Size = UDim2.new(1, 0, 0, 27),
-				BackgroundColor3 = COLORS.Control,
-				Text = "  " .. tostring(name),
-				TextColor3 = COLORS.Text,
-				TextSize = 9,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				Font = FONTS.Medium,
-				AutoButtonColor = false,
+				BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+				BorderSizePixel = 0,
 				ZIndex = 8,
 			}, settingsList)
+			addCorner(row, 4)
+			addStroke(row, Color3.fromRGB(36, 36, 43), 0.45)
+			addText(row, name, 9, COLORS.Muted, {
+				Position = UDim2.fromOffset(8, 0),
+				Size = UDim2.new(1, -72, 1, 0),
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Font = FONTS.Medium,
+				ZIndex = 9,
+			})
+
+			if options.Type == "toggle" then
+				local state = options.Default == true
+				local toggle = create("TextButton", {
+					Position = UDim2.new(1, -38, 0.5, -8),
+					Size = UDim2.fromOffset(30, 17),
+					BackgroundColor3 = Color3.fromRGB(27, 27, 32),
+					Text = "",
+					AutoButtonColor = false,
+					ZIndex = 10,
+				}, row)
+				addCorner(toggle, 5)
+				addStroke(toggle, COLORS.Line, 0.1)
+				local knob = create("Frame", {
+					Size = UDim2.fromOffset(9, 9),
+					BorderSizePixel = 0,
+					ZIndex = 11,
+				}, toggle)
+				addCorner(knob, 4)
+				local control
+				local function set(value, fire)
+					state = value == true
+					toggle.BackgroundColor3 = state and Color3.fromRGB(36, 36, 42) or Color3.fromRGB(27, 27, 32)
+					knob.BackgroundColor3 = state and COLORS.Text or COLORS.Muted
+					knob.Position = state and UDim2.new(1, -12, 0.5, -4) or UDim2.fromOffset(3, 4)
+					if fire and type(callback) == "function" then
+						callback(state, view)
+					end
+				end
+				control = {
+					Set = function(_, value)
+						set(value, true)
+					end,
+					Get = function()
+						return state
+					end,
+				}
+				set(state, false)
+				connect(toggle.MouseButton1Click, function()
+					control:Set(not state)
+				end)
+				return control
+			end
+
+			local button = create("TextButton", {
+				Position = UDim2.new(1, -62, 0.5, -10),
+				Size = UDim2.fromOffset(54, 20),
+				BackgroundColor3 = COLORS.Control,
+				Text = options.Value or "open",
+				TextColor3 = COLORS.Text,
+				TextSize = 8,
+				Font = FONTS.Semibold,
+				AutoButtonColor = false,
+				ZIndex = 10,
+			}, row)
 			addCorner(button, 4)
+			addStroke(button, COLORS.Line, 0.15)
 			connect(button.MouseEnter, function()
 				button.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
 			end)
