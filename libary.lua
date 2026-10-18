@@ -1,6 +1,3 @@
--- Library.lua
--- RemoteSpy-only monochrome GUI library.
-
 local Library = {}
 Library.__index = Library
 
@@ -626,16 +623,90 @@ function Library.new(config)
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, settingsList)
+		local settingsAppearance
+		local function captureSettingsAppearance()
+			if settingsAppearance then
+				return
+			end
+
+			settingsAppearance = {}
+			for _, object in ipairs(settingsPanel:GetDescendants()) do
+				local state = {Object = object}
+				local hasState = false
+				if object:IsA("GuiObject") then
+					state.BackgroundTransparency = object.BackgroundTransparency
+					hasState = true
+				end
+				if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+					state.TextTransparency = object.TextTransparency
+					hasState = true
+				end
+				if object:IsA("ImageLabel") or object:IsA("ImageButton") then
+					state.ImageTransparency = object.ImageTransparency
+					hasState = true
+				end
+				if object:IsA("UIStroke") then
+					state.StrokeTransparency = object.Transparency
+					hasState = true
+				end
+				if hasState then
+					table.insert(settingsAppearance, state)
+				end
+			end
+		end
+		local function tweenSettingsAppearance(showing)
+			captureSettingsAppearance()
+			for index, state in ipairs(settingsAppearance) do
+				local object = state.Object
+				if object.Parent then
+					local goal = {}
+					if state.BackgroundTransparency ~= nil then
+						if showing then
+							object.BackgroundTransparency = 1
+						end
+						goal.BackgroundTransparency = showing and state.BackgroundTransparency or 1
+					end
+					if state.TextTransparency ~= nil then
+						if showing then
+							object.TextTransparency = 1
+						end
+						goal.TextTransparency = showing and state.TextTransparency or 1
+					end
+					if state.ImageTransparency ~= nil then
+						if showing then
+							object.ImageTransparency = 1
+						end
+						goal.ImageTransparency = showing and state.ImageTransparency or 1
+					end
+					if state.StrokeTransparency ~= nil then
+						if showing then
+							object.Transparency = 1
+						end
+						goal.Transparency = showing and state.StrokeTransparency or 1
+					end
+					TweenService:Create(object, TweenInfo.new(
+						showing and 0.2 or 0.12,
+						Enum.EasingStyle.Quint,
+						showing and Enum.EasingDirection.Out or Enum.EasingDirection.In,
+						0,
+						false,
+						showing and math.min(index * 0.004, 0.08) or 0
+					), goal):Play()
+				end
+			end
+		end
 		local function showSettings()
 			settingsPanel.Visible = true
 			settingsButton.Visible = false
 			settingsPanel.BackgroundTransparency = 1
+			tweenSettingsAppearance(true)
 			TweenService:Create(settingsPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 				BackgroundTransparency = 0,
 			}):Play()
 		end
 
 		local function hideSettings()
+			tweenSettingsAppearance(false)
 			local fade = TweenService:Create(settingsPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 				BackgroundTransparency = 1,
 			})
@@ -860,7 +931,7 @@ function Library.new(config)
 					Font = FONTS.Semibold,
 					ZIndex = 38,
 				})
-				addText(item, "Hidden from capture list", 9, COLORS.MutedDark, {
+				addText(item, "Hidden from capture list", 11, COLORS.Muted, {
 					Position = UDim2.fromOffset(14, 32),
 					Size = UDim2.new(1, -126, 0, 18),
 					TextTruncate = Enum.TextTruncate.AtEnd,
@@ -1047,7 +1118,7 @@ function Library.new(config)
 			}, row)
 			local selectionStroke = addStroke(row, data.Color or typeColor(remoteType), 1)
 			selectionStroke.Thickness = 1.25
-			addText(row, remoteName, 11, COLORS.Text, {
+			addText(row, remoteName, 12, COLORS.Text, {
 				Position = UDim2.fromOffset(14, 0),
 				Size = UDim2.new(1, -72, 1, 0),
 				TextYAlignment = Enum.TextYAlignment.Center,
@@ -1116,7 +1187,7 @@ function Library.new(config)
 				Font = FONTS.Semibold,
 				ZIndex = 11,
 			})
-			addText(row, description, 9, COLORS.MutedDark, {
+			addText(row, description, 11, COLORS.Muted, {
 				Position = UDim2.fromOffset(14, 31),
 				Size = UDim2.new(1, -126, 0, 18),
 				TextYAlignment = Enum.TextYAlignment.Top,
