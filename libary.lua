@@ -196,15 +196,6 @@ function Library.new(config)
 		Font = FONTS.Bold,
 		ZIndex = 6,
 	})
-	addText(topBar, "remote monitor", 9, COLORS.Muted, {
-		Position = UDim2.new(1, -118, 0, 0),
-		Size = UDim2.fromOffset(86, 34),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		TextYAlignment = Enum.TextYAlignment.Center,
-		Font = FONTS.Medium,
-		ZIndex = 6,
-	})
-
 	local closeButton = create("TextButton", {
 		Position = UDim2.new(1, -27, 0, 6),
 		Size = UDim2.fromOffset(20, 20),
@@ -408,43 +399,45 @@ function Library.new(config)
 		}, root)
 
 		local codePanel = create("Frame", {
-			Size = UDim2.new(1, 0, 1, -180),
+			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(18, 18, 23),
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 			ZIndex = 6,
 		}, detailPanel)
 		addStroke(codePanel, COLORS.Line, 0.25)
-		addText(codePanel, "generated request", 9, COLORS.Muted, {
-			Position = UDim2.fromOffset(13, 9),
-			Size = UDim2.new(1, -26, 0, 16),
-			Font = FONTS.Bold,
-			ZIndex = 7,
-		})
 		local codeLabel = addText(codePanel, options.Code or "-- no remote selected", 12, COLORS.Text, {
-			Position = UDim2.fromOffset(13, 32),
-			Size = UDim2.new(1, -26, 1, -44),
+			Position = UDim2.fromOffset(13, 14),
+			Size = UDim2.new(1, -26, 1, -28),
 			Font = FONTS.Code,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextWrapped = false,
 			ZIndex = 7,
 		})
-		local codeStatus = addText(codePanel, "preview", 9, COLORS.MutedDark, {
-			Position = UDim2.new(1, -85, 0, 9),
-			Size = UDim2.fromOffset(72, 16),
-			TextXAlignment = Enum.TextXAlignment.Right,
-			Font = FONTS.Medium,
-			ZIndex = 7,
-		})
+
+		local settingsButton = create("TextButton", {
+			Position = UDim2.new(1, -92, 1, -36),
+			Size = UDim2.fromOffset(80, 27),
+			BackgroundColor3 = COLORS.Control,
+			Text = "settings",
+			TextColor3 = COLORS.Muted,
+			TextSize = 9,
+			Font = FONTS.Semibold,
+			AutoButtonColor = false,
+			ZIndex = 12,
+		}, detailPanel)
+		addCorner(settingsButton, 5)
+		addStroke(settingsButton, COLORS.Line, 0.15)
 
 		local settingsPanel = create("Frame", {
-			Position = UDim2.new(0, 0, 1, -180),
-			Size = UDim2.new(1, 0, 0, 180),
+			Position = UDim2.fromOffset(0, 0),
+			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(15, 15, 19),
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 			ZIndex = 8,
-		}, detailPanel)
+			Visible = false,
+		}, root)
 		addStroke(settingsPanel, COLORS.Line, 0.1)
 		addText(settingsPanel, "settings", 10, COLORS.Text, {
 			Position = UDim2.fromOffset(13, 7),
@@ -452,6 +445,18 @@ function Library.new(config)
 			Font = FONTS.Bold,
 			ZIndex = 9,
 		})
+		local settingsClose = create("TextButton", {
+			Position = UDim2.new(1, -34, 0, 6),
+			Size = UDim2.fromOffset(22, 22),
+			BackgroundColor3 = COLORS.Control,
+			Text = "×",
+			TextColor3 = COLORS.Muted,
+			TextSize = 13,
+			Font = FONTS.Medium,
+			AutoButtonColor = false,
+			ZIndex = 10,
+		}, settingsPanel)
+		addCorner(settingsClose, 4)
 		local settingsList = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(9, 36),
 			Size = UDim2.new(1, -18, 1, -43),
@@ -466,6 +471,22 @@ function Library.new(config)
 			Padding = UDim.new(0, 5),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, settingsList)
+		connect(settingsButton.MouseEnter, function()
+			settingsButton.BackgroundColor3 = COLORS.PanelRaised
+			settingsButton.TextColor3 = COLORS.Text
+		end)
+		connect(settingsButton.MouseLeave, function()
+			settingsButton.BackgroundColor3 = COLORS.Control
+			settingsButton.TextColor3 = COLORS.Muted
+		end)
+		connect(settingsButton.MouseButton1Click, function()
+			settingsPanel.Visible = true
+			settingsButton.Visible = false
+		end)
+		connect(settingsClose.MouseButton1Click, function()
+			settingsPanel.Visible = false
+			settingsButton.Visible = true
+		end)
 
 		local contextMenu = create("Frame", {
 			Size = UDim2.fromOffset(150, 112),
@@ -476,15 +497,9 @@ function Library.new(config)
 		}, root)
 		addCorner(contextMenu, 6)
 		addStroke(contextMenu, COLORS.LineBright, 0.1)
-		addText(contextMenu, "remote", 8, COLORS.Muted, {
-			Position = UDim2.fromOffset(9, 5),
-			Size = UDim2.new(1, -18, 0, 14),
-			Font = FONTS.Bold,
-			ZIndex = 41,
-		})
 		local contextList = create("Frame", {
-			Position = UDim2.fromOffset(5, 23),
-			Size = UDim2.new(1, -10, 1, -28),
+			Position = UDim2.fromOffset(5, 5),
+			Size = UDim2.new(1, -10, 1, -10),
 			BackgroundTransparency = 1,
 			ZIndex = 41,
 		}, contextMenu)
@@ -527,9 +542,8 @@ function Library.new(config)
 			countLabel.Text = tostring(visibleCount)
 		end
 
-		function view:SetCode(code, status)
+		function view:SetCode(code)
 			codeLabel.Text = tostring(code or "-- no remote selected")
-			codeStatus.Text = tostring(status or "preview")
 		end
 
 		local function selectTarget(target)
@@ -539,7 +553,7 @@ function Library.new(config)
 
 			view._selected = target
 			target.row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
-			view:SetCode(target.data.Code or "-- no generated request", target.name)
+			view:SetCode(target.data.Code or "-- no selected call", target.name)
 			safeCallback(target.data.Callback, target.data, view)
 		end
 
@@ -639,13 +653,13 @@ function Library.new(config)
 		end
 
 		contextAction("Run preview", function(data)
-			view:SetCode(data.Code or "-- no generated request", "preview only")
+			view:SetCode(data.Code or "-- no selected call", "preview only")
 		end)
 		contextAction("Copy code", function(data)
 			if type(setclipboard) == "function" then
 				pcall(setclipboard, tostring(data.Code or ""))
 			end
-			view:SetCode(data.Code or "-- no generated request", "copied")
+			view:SetCode(data.Code or "-- no selected call", "copied")
 		end)
 		contextAction("Ban remote", function(data)
 			view:Ban(data)
@@ -678,15 +692,6 @@ function Library.new(config)
 				Font = FONTS.Medium,
 				ZIndex = 8,
 			})
-			addText(row, remoteType, 8, COLORS.Muted, {
-				Position = UDim2.new(1, -54, 0, 0),
-				Size = UDim2.fromOffset(45, 32),
-				TextXAlignment = Enum.TextXAlignment.Right,
-				TextYAlignment = Enum.TextYAlignment.Center,
-				Font = FONTS.Medium,
-				ZIndex = 8,
-			})
-
 			local target = {data = data, name = remoteName, row = row}
 			connect(row.MouseEnter, function()
 				if view._selected ~= target then
