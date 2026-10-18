@@ -700,6 +700,7 @@ function Library.new(config)
 
 		function view:AddLog(entry)
 			local data = type(entry) == "table" and entry or {Name = tostring(entry)}
+			local remoteName = tostring(data.Name or "Remote")
 			local row = create("TextButton", {
 				Size = UDim2.new(1, 0, 0, 28),
 				BackgroundColor3 = Color3.fromRGB(17, 17, 21),
@@ -1416,7 +1417,6 @@ function Library.new(config)
 		local view = {
 			_logs = {},
 			_banned = {},
-			_bannedRows = {},
 			_selected = nil,
 			_contextTarget = nil,
 			_library = self,
@@ -1500,7 +1500,7 @@ function Library.new(config)
 		}, leftPanel)
 		local logList = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(9, 8),
-			Size = UDim2.new(1, -18, 1, -151),
+			Size = UDim2.new(1, -18, 1, -50),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 3,
@@ -1513,35 +1513,73 @@ function Library.new(config)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, logList)
 
-		local settingsPanel = create("Frame", {
-			Position = UDim2.new(0, 0, 1, -143),
-			Size = UDim2.new(1, -1, 0, 143),
-			BackgroundColor3 = Color3.fromRGB(13, 13, 17),
-			BorderSizePixel = 0,
-			ZIndex = 6,
+		local contextMenu
+
+		local settingsButton = create("TextButton", {
+			Position = UDim2.new(0, 9, 1, -36),
+			Size = UDim2.new(1, -19, 0, 28),
+			BackgroundColor3 = COLORS.Control,
+			Text = "settings",
+			TextColor3 = COLORS.Muted,
+			TextSize = 9,
+			Font = FONTS.Medium,
+			AutoButtonColor = false,
+			ZIndex = 9,
 		}, leftPanel)
-		create("Frame", {
-			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = Color3.fromRGB(29, 29, 35),
+		addCorner(settingsButton, 4)
+		addStroke(settingsButton, COLORS.Line, 0.2)
+
+		local settingsWindow = create("Frame", {
+			Position = UDim2.new(0, 12, 1, -230),
+			Size = UDim2.fromOffset(270, 210),
+			BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 			BorderSizePixel = 0,
-			ZIndex = 7,
-		}, settingsPanel)
-		addText(settingsPanel, "settings", 9, COLORS.Muted, {
-			Position = UDim2.fromOffset(10, 8),
-			Size = UDim2.new(1, -20, 0, 18),
+			Visible = false,
+			ZIndex = 28,
+		}, root)
+		addCorner(settingsWindow, 7)
+		addStroke(settingsWindow, COLORS.LineBright, 0.1)
+		addText(settingsWindow, "settings", 10, COLORS.Text, {
+			Position = UDim2.fromOffset(12, 7),
+			Size = UDim2.new(1, -48, 0, 22),
 			Font = FONTS.Bold,
-			ZIndex = 7,
+			ZIndex = 29,
 		})
+		local settingsClose = create("TextButton", {
+			Position = UDim2.new(1, -29, 0, 6),
+			Size = UDim2.fromOffset(20, 20),
+			BackgroundColor3 = COLORS.Control,
+			Text = "×",
+			TextColor3 = COLORS.Muted,
+			TextSize = 13,
+			Font = FONTS.Medium,
+			AutoButtonColor = false,
+			ZIndex = 30,
+		}, settingsWindow)
+		addCorner(settingsClose, 4)
 		local settingsList = create("Frame", {
-			Position = UDim2.fromOffset(8, 31),
-			Size = UDim2.new(1, -16, 1, -37),
+			Position = UDim2.fromOffset(9, 38),
+			Size = UDim2.new(1, -18, 1, -47),
 			BackgroundTransparency = 1,
-			ZIndex = 7,
-		}, settingsPanel)
+			ZIndex = 29,
+		}, settingsWindow)
 		create("UIListLayout", {
 			Padding = UDim.new(0, 5),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, settingsList)
+		connect(settingsButton.MouseEnter, function()
+			settingsButton.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+		end)
+		connect(settingsButton.MouseLeave, function()
+			settingsButton.BackgroundColor3 = COLORS.Control
+		end)
+		connect(settingsButton.MouseButton1Click, function()
+			settingsWindow.Visible = not settingsWindow.Visible
+			contextMenu.Visible = false
+		end)
+		connect(settingsClose.MouseButton1Click, function()
+			settingsWindow.Visible = false
+		end)
 
 		local detailPanel = create("Frame", {
 			Position = UDim2.fromOffset(165, 0),
@@ -1574,7 +1612,7 @@ function Library.new(config)
 			ZIndex = 7,
 		})
 
-		local contextMenu = create("Frame", {
+		contextMenu = create("Frame", {
 			Size = UDim2.fromOffset(138, 118),
 			BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 			BorderSizePixel = 0,
@@ -1634,7 +1672,7 @@ function Library.new(config)
 					item:Destroy()
 				end
 			end
-			for name, row in pairs(view._bannedRows) do
+			for name in pairs(view._banned) do
 				local item = create("TextButton", {
 					Size = UDim2.new(1, 0, 0, 28),
 					BackgroundColor3 = COLORS.Control,
@@ -1649,20 +1687,31 @@ function Library.new(config)
 				addCorner(item, 4)
 				connect(item.MouseButton1Click, function()
 					view._banned[name] = nil
-					row.Visible = true
-					view._bannedRows[name] = nil
+					for _, target in ipairs(view._logs) do
+						if target.name == name and target.row.Parent then
+							target.row.Visible = true
+						end
+					end
 					view:RefreshBanned()
 				end)
 			end
 		end
 
-		function view:Ban(data, row)
+		function view:Ban(data)
 			if not data or not data.Name then
 				return
 			end
-			view._banned[data.Name] = data
-			view._bannedRows[data.Name] = row
-			row.Visible = false
+			local name = tostring(data.Name)
+			view._banned[name] = data
+			for _, target in ipairs(view._logs) do
+				if target.name == name and target.row.Parent then
+					target.row.Visible = false
+				end
+			end
+			if view._selected and view._selected.name == name then
+				view._selected = nil
+				view:SetCode("-- no remote selected")
+			end
 			contextMenu.Visible = false
 			view:RefreshBanned()
 		end
@@ -1670,6 +1719,7 @@ function Library.new(config)
 		function view:OpenBanned()
 			view:RefreshBanned()
 			bannedPanel.Visible = not bannedPanel.Visible
+			settingsWindow.Visible = false
 			contextMenu.Visible = false
 		end
 
@@ -1713,8 +1763,8 @@ function Library.new(config)
 		contextAction("Copy", function(data)
 			view:SetCode("-- copy preview\n-- " .. tostring(data.Name or "Remote"))
 		end)
-		contextAction("Ban", function(data, row)
-			view:Ban(data, row)
+		contextAction("Ban", function(data)
+			view:Ban(data)
 		end)
 
 		function view:AddSetting(name, callback, options)
@@ -1723,7 +1773,7 @@ function Library.new(config)
 				Size = UDim2.new(1, 0, 0, 27),
 				BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 				BorderSizePixel = 0,
-				ZIndex = 8,
+				ZIndex = 29,
 			}, settingsList)
 			addCorner(row, 4)
 			addStroke(row, Color3.fromRGB(36, 36, 43), 0.45)
@@ -1732,7 +1782,7 @@ function Library.new(config)
 				Size = UDim2.new(1, -72, 1, 0),
 				TextYAlignment = Enum.TextYAlignment.Center,
 				Font = FONTS.Medium,
-				ZIndex = 9,
+				ZIndex = 30,
 			})
 
 			if options.Type == "toggle" then
@@ -1743,14 +1793,14 @@ function Library.new(config)
 					BackgroundColor3 = Color3.fromRGB(27, 27, 32),
 					Text = "",
 					AutoButtonColor = false,
-					ZIndex = 10,
+					ZIndex = 31,
 				}, row)
 				addCorner(toggle, 5)
 				addStroke(toggle, COLORS.Line, 0.1)
 				local knob = create("Frame", {
 					Size = UDim2.fromOffset(9, 9),
 					BorderSizePixel = 0,
-					ZIndex = 11,
+					ZIndex = 32,
 				}, toggle)
 				addCorner(knob, 4)
 				local control
@@ -1787,7 +1837,7 @@ function Library.new(config)
 				TextSize = 8,
 				Font = FONTS.Semibold,
 				AutoButtonColor = false,
-				ZIndex = 10,
+				ZIndex = 31,
 			}, row)
 			addCorner(button, 4)
 			addStroke(button, COLORS.Line, 0.15)
@@ -1822,7 +1872,7 @@ function Library.new(config)
 				BorderSizePixel = 0,
 				ZIndex = 9,
 			}, row)
-			addText(row, data.Name or "Remote", 10, COLORS.Text, {
+			addText(row, remoteName, 10, COLORS.Text, {
 				Position = UDim2.fromOffset(11, 0),
 				Size = UDim2.new(1, -16, 1, 0),
 				TextYAlignment = Enum.TextYAlignment.Center,
@@ -1830,7 +1880,7 @@ function Library.new(config)
 				Font = FONTS.Medium,
 				ZIndex = 9,
 			})
-			local target = {data = data, row = row}
+			local target = {data = data, name = remoteName, row = row}
 			connect(row.MouseEnter, function()
 				if view._selected ~= target then
 					row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
@@ -1859,10 +1909,7 @@ function Library.new(config)
 				row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
 				view:SetCode(data.Code or "-- no generated request")
 			end)
-			row.Visible = view._banned[data.Name] == nil
-			if not row.Visible then
-				view._bannedRows[data.Name] = row
-			end
+			row.Visible = view._banned[remoteName] == nil
 			table.insert(view._logs, target)
 			if not view._selected and row.Visible then
 				view._selected = target
