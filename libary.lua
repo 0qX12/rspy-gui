@@ -1,6 +1,3 @@
--- Library.lua
--- Standalone monochrome Roblox Luau GUI component library.
-
 local Library = {}
 Library.__index = Library
 
@@ -380,13 +377,39 @@ function Library.new(config)
 			ClipsDescendants = false,
 			ZIndex = 2,
 		}, pages)
-		create("UIGridLayout", {
-			CellPadding = UDim2.fromOffset(10, 10),
-			CellSize = UDim2.new(0.5, -5, 0, 0),
-			AutomaticCellSize = Enum.AutomaticSize.Y,
-			FillDirectionMaxCells = 2,
-			SortOrder = Enum.SortOrder.LayoutOrder,
+		local pageContent = create("Frame", {
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			ClipsDescendants = false,
+			ZIndex = 2,
 		}, tab._page)
+		local leftColumn = create("Frame", {
+			Size = UDim2.new(0.5, -5, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			ClipsDescendants = false,
+			ZIndex = 3,
+		}, pageContent)
+		local rightColumn = create("Frame", {
+			Position = UDim2.new(0.5, 5, 0, 0),
+			Size = UDim2.new(0.5, -5, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			BackgroundTransparency = 1,
+			ClipsDescendants = false,
+			ZIndex = 3,
+		}, pageContent)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, leftColumn)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, rightColumn)
+		tab._pageContent = pageContent
+		tab._leftColumn = leftColumn
+		tab._rightColumn = rightColumn
 
 		table.insert(self._tabs, tab)
 		connect(tab._button.MouseEnter, function()
@@ -417,15 +440,20 @@ function Library.new(config)
 				_library = self._library,
 			}
 
+			local column = sectionData.Column == 2 and tab._rightColumn or tab._leftColumn
+			if sectionData.Column ~= 1 and sectionData.Column ~= 2 then
+				column = (#tab.Sections % 2 == 0) and tab._leftColumn or tab._rightColumn
+			end
+
 			section._box = create("Frame", {
 				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
 				BackgroundColor3 = COLORS.Panel,
 				BorderSizePixel = 0,
 				ClipsDescendants = false,
-				LayoutOrder = sectionData.Column or (#tab.Sections + 1),
+				LayoutOrder = #tab.Sections + 1,
 				ZIndex = 3,
-			}, tab._page)
+			}, column)
 			addCorner(section._box, 8)
 			addStroke(section._box, COLORS.Line)
 			addText(section._box, section.Name, 10, COLORS.Muted, {
