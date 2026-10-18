@@ -120,7 +120,6 @@ local function addStroke(parent, color, transparency)
 		Color = color or COLORS.Line,
 		Transparency = transparency or 0,
 		Thickness = 1,
-		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, parent)
 end
 
@@ -227,7 +226,6 @@ function Library.new(config)
 		_toggleKey = resolveKeyCode(config.ToggleKey),
 		_onToggleKeyChanged = config.OnToggleKeyChanged,
 		_keyCapture = false,
-		_windowScale = nil,
 		_windowAppearance = {},
 		_visibilityVersion = 0,
 		_view = nil,
@@ -255,10 +253,10 @@ function Library.new(config)
 
 	self.Window = create("Frame", {
 		Size = windowSize,
-		AnchorPoint = Vector2.zero,
+		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromOffset(
-			math.floor((viewport.X - width) / 2),
-			math.floor((viewport.Y - height) / 2)
+			math.floor(viewport.X / 2),
+			math.floor(viewport.Y / 2)
 		),
 		BackgroundColor3 = COLORS.Background,
 		BorderSizePixel = 0,
@@ -268,9 +266,6 @@ function Library.new(config)
 	}, self.Gui)
 	addCorner(self.Window, 9)
 	addGradient(self.Window, Color3.fromRGB(20, 20, 26), COLORS.Background, 90)
-	self._windowScale = create("UIScale", {
-		Scale = 1,
-	}, self.Window)
 
 	local accentLine = create("Frame", {
 		Size = UDim2.new(1, 0, 0, 2),
@@ -463,12 +458,15 @@ function Library.new(config)
 		self._visibilityVersion += 1
 		local version = self._visibilityVersion
 		local transitionDuration = showing and 0.22 or 0.16
-		local hiddenScale = 0.95
+		local hiddenSize = UDim2.fromOffset(
+			math.floor(width * 0.95),
+			math.floor(height * 0.95)
+		)
 		local snapshot = collectAppearance(self.Window)
 
 		if showing then
 			self.Window.Visible = true
-			self._windowScale.Scale = hiddenScale
+			self.Window.Size = hiddenSize
 			for _, item in ipairs(snapshot) do
 				for property in pairs(item.Base) do
 					item.Object[property] = 1
@@ -476,12 +474,12 @@ function Library.new(config)
 			end
 		end
 
-		TweenService:Create(self._windowScale, TweenInfo.new(
+		TweenService:Create(self.Window, TweenInfo.new(
 			transitionDuration,
 			Enum.EasingStyle.Quint,
 			showing and Enum.EasingDirection.Out or Enum.EasingDirection.In
 		), {
-			Scale = showing and 1 or hiddenScale,
+			Size = showing and windowSize or hiddenSize,
 		}):Play()
 
 		for _, item in ipairs(snapshot) do
@@ -511,6 +509,7 @@ function Library.new(config)
 							end
 						end
 					end
+					self.Window.Size = windowSize
 					self.Window.Visible = false
 				end
 			end)
@@ -759,7 +758,7 @@ function Library.new(config)
 		end
 		local function addFilterOption(label, value, color)
 			local option = create("TextButton", {
-				Size = UDim2.new(1, 0, 0, 28),
+				Size = UDim2.new(1, 0, 0, 27),
 				BackgroundColor3 = Color3.fromRGB(27, 27, 34),
 				Text = "",
 				AutoButtonColor = false,
