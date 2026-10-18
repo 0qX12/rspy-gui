@@ -259,6 +259,8 @@ function Library.new(config)
 			math.floor(viewport.Y / 2)
 		),
 		BackgroundColor3 = COLORS.Background,
+		GroupColor3 = Color3.new(1, 1, 1),
+		GroupTransparency = 0,
 		BorderSizePixel = 0,
 		Active = true,
 		ClipsDescendants = true,
