@@ -629,26 +629,46 @@ function Library.new(config)
 			ClipsDescendants = true,
 			ZIndex = 30,
 		}, root)
-		addStroke(bannedPanel, COLORS.LineBright, 0.1)
 		addGradient(bannedPanel, Color3.fromRGB(24, 24, 30), Color3.fromRGB(11, 11, 14), 90)
-		addText(bannedPanel, "banned remotes", 10, COLORS.Text, {
-			Position = UDim2.fromOffset(18, 10),
-			Size = UDim2.new(1, -70, 0, 24),
+		addText(bannedPanel, "banned remotes", 14, COLORS.Text, {
+			Position = UDim2.fromOffset(24, 12),
+			Size = UDim2.new(1, -190, 0, 24),
 			Font = FONTS.Bold,
 			ZIndex = 31,
 		})
+		addText(bannedPanel, "Remotes hidden from the capture list", 10, COLORS.Muted, {
+			Position = UDim2.fromOffset(24, 37),
+			Size = UDim2.new(1, -210, 0, 18),
+			Font = FONTS.Medium,
+			ZIndex = 31,
+		})
+		local bannedCountLabel = addText(bannedPanel, "0 blocked", 10, COLORS.Muted, {
+			Position = UDim2.new(1, -190, 0, 38),
+			Size = UDim2.fromOffset(120, 18),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			Font = FONTS.Semibold,
+			ZIndex = 31,
+		})
+		create("Frame", {
+			Position = UDim2.fromOffset(24, 67),
+			Size = UDim2.new(1, -48, 0, 1),
+			BackgroundColor3 = COLORS.Line,
+			BorderSizePixel = 0,
+			ZIndex = 31,
+		}, bannedPanel)
 		local bannedClose = create("TextButton", {
-			Position = UDim2.new(1, -38, 0, 7),
-			Size = UDim2.fromOffset(24, 24),
+			Position = UDim2.new(1, -54, 0, 14),
+			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = COLORS.Control,
 			Text = "×",
 			TextColor3 = COLORS.Muted,
-			TextSize = 13,
+			TextSize = 16,
 			Font = FONTS.Medium,
 			AutoButtonColor = false,
 			ZIndex = 32,
 		}, bannedPanel)
-		addCorner(bannedClose, 4)
+		addCorner(bannedClose, 6)
+		addStroke(bannedClose, COLORS.Line, 0.25)
 		connect(bannedClose.MouseEnter, function()
 			TweenService:Create(bannedClose, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.PanelRaised,
@@ -662,8 +682,8 @@ function Library.new(config)
 			}):Play()
 		end)
 		local bannedList = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(18, 52),
-			Size = UDim2.new(1, -36, 1, -70),
+			Position = UDim2.fromOffset(24, 82),
+			Size = UDim2.new(1, -48, 1, -112),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 4,
@@ -672,7 +692,32 @@ function Library.new(config)
 			ScrollBarImageTransparency = 0.2,
 			ZIndex = 31,
 		}, bannedPanel)
-		create("UIListLayout", {Padding = UDim.new(0, 6)}, bannedList)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 10),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, bannedList)
+		local bannedEmpty = create("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 22),
+			Size = UDim2.fromOffset(360, 82),
+			BackgroundTransparency = 1,
+			ZIndex = 33,
+			Visible = false,
+		}, bannedPanel)
+		addText(bannedEmpty, "No banned remotes", 13, COLORS.Text, {
+			Position = UDim2.fromOffset(0, 4),
+			Size = UDim2.new(1, 0, 0, 24),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Font = FONTS.Bold,
+			ZIndex = 34,
+		})
+		addText(bannedEmpty, "Banned entries will appear here.", 10, COLORS.Muted, {
+			Position = UDim2.fromOffset(0, 34),
+			Size = UDim2.new(1, 0, 0, 20),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Font = FONTS.Medium,
+			ZIndex = 34,
+		})
 		local bannedScale = create("UIScale", {Scale = 0.985}, bannedPanel)
 		local function showBanned()
 			settingsPanel.Visible = false
@@ -746,31 +791,57 @@ function Library.new(config)
 				end
 			end
 
+			local bannedCount = 0
 			for name in pairs(view._banned) do
-				local item = create("TextButton", {
-					Size = UDim2.new(1, 0, 0, 32),
-					BackgroundColor3 = COLORS.Control,
-					Text = "  " .. tostring(name) .. "                         unban",
-					TextColor3 = COLORS.Text,
-					TextSize = 10,
-					Font = FONTS.Medium,
-					TextXAlignment = Enum.TextXAlignment.Left,
-					AutoButtonColor = false,
+				bannedCount += 1
+				local item = create("Frame", {
+					Size = UDim2.new(1, 0, 0, 62),
+					BackgroundColor3 = COLORS.Panel,
+					BorderSizePixel = 0,
+					LayoutOrder = bannedCount,
 					ZIndex = 37,
 				}, bannedList)
-				addCorner(item, 4)
-				addStroke(item, COLORS.Line, 0.35)
-				connect(item.MouseEnter, function()
-					TweenService:Create(item, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-						BackgroundColor3 = Color3.fromRGB(48, 48, 57),
+				addCorner(item, 7)
+				addStroke(item, COLORS.Line, 0.48)
+				addGradient(item, Color3.fromRGB(25, 25, 31), Color3.fromRGB(17, 17, 22), 90)
+				addText(item, tostring(name), 11, COLORS.Text, {
+					Position = UDim2.fromOffset(14, 8),
+					Size = UDim2.new(1, -126, 0, 20),
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					Font = FONTS.Semibold,
+					ZIndex = 38,
+				})
+				addText(item, "Hidden from the remote log", 9, COLORS.MutedDark, {
+					Position = UDim2.fromOffset(14, 32),
+					Size = UDim2.new(1, -126, 0, 18),
+					TextTruncate = Enum.TextTruncate.AtEnd,
+					Font = FONTS.Medium,
+					ZIndex = 38,
+				})
+				local unban = create("TextButton", {
+					Position = UDim2.new(1, -92, 0.5, -13),
+					Size = UDim2.fromOffset(78, 26),
+					BackgroundColor3 = COLORS.Control,
+					Text = "unban",
+					TextColor3 = COLORS.Text,
+					TextSize = 10,
+					Font = FONTS.Semibold,
+					AutoButtonColor = false,
+					ZIndex = 39,
+				}, item)
+				addCorner(unban, 5)
+				addStroke(unban, COLORS.Line, 0.2)
+				connect(unban.MouseEnter, function()
+					TweenService:Create(unban, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(42, 42, 50),
 					}):Play()
 				end)
-				connect(item.MouseLeave, function()
-					TweenService:Create(item, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				connect(unban.MouseLeave, function()
+					TweenService:Create(unban, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundColor3 = COLORS.Control,
 					}):Play()
 				end)
-				connect(item.MouseButton1Click, function()
+				connect(unban.MouseButton1Click, function()
 					view._banned[name] = nil
 					for _, target in ipairs(view._logs) do
 						if target.name == name and target.row.Parent then
@@ -781,6 +852,9 @@ function Library.new(config)
 					updateCount()
 				end)
 			end
+			bannedCountLabel.Text = tostring(bannedCount) .. " blocked"
+			bannedList.Visible = bannedCount > 0
+			bannedEmpty.Visible = bannedCount == 0
 		end
 
 		function view:Ban(data)
