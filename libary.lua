@@ -1,3 +1,6 @@
+-- Library.lua
+-- Standalone monochrome settings GUI component library.
+
 local Library = {}
 Library.__index = Library
 
@@ -905,7 +908,7 @@ function Library.new(config)
 			section._box = create("Frame", {
 				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
-				BackgroundColor3 = COLORS.Panel,
+				BackgroundColor3 = Color3.fromRGB(14, 14, 18),
 				BorderSizePixel = 0,
 				ClipsDescendants = false,
 				LayoutOrder = #tab.Sections + 1,
@@ -920,6 +923,13 @@ function Library.new(config)
 				Font = FONTS.Bold,
 				ZIndex = 4,
 			})
+			create("Frame", {
+				Position = UDim2.fromOffset(0, 31),
+				Size = UDim2.new(1, 0, 0, 1),
+				BackgroundColor3 = Color3.fromRGB(29, 29, 35),
+				BorderSizePixel = 0,
+				ZIndex = 4,
+			}, section._box)
 			section._list = create("Frame", {
 				Position = UDim2.fromOffset(0, 32),
 				Size = UDim2.new(1, 0, 0, 0),
@@ -937,7 +947,7 @@ function Library.new(config)
 			function section:_row(name, rowHeight)
 				local row = create("Frame", {
 					Size = UDim2.new(1, 0, 0, rowHeight or 40),
-					BackgroundColor3 = COLORS.Panel,
+					BackgroundColor3 = Color3.fromRGB(13, 13, 17),
 					BackgroundTransparency = 0,
 					BorderSizePixel = 0,
 					ClipsDescendants = false,
