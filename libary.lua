@@ -1,12 +1,10 @@
--- Library.lua
--- RemoteSpy-only monochrome GUI library.
-
 local Library = {}
 Library.__index = Library
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local ContentProvider = game:GetService("ContentProvider")
 
 local COLORS = {
 	Background = Color3.fromRGB(9, 9, 12),
@@ -78,6 +76,31 @@ local function create(className, properties, parent)
 
 	object.Parent = parent
 	return object
+end
+
+local function preloadFonts(parent)
+	local labels = {}
+	for _, font in pairs(FONTS) do
+		table.insert(labels, create("TextLabel", {
+			Size = UDim2.fromOffset(1, 1),
+			BackgroundTransparency = 1,
+			TextTransparency = 1,
+			Text = "Aa",
+			Font = font,
+		}, parent))
+	end
+
+	task.spawn(function()
+		pcall(function()
+			ContentProvider:PreloadAsync(labels)
+		end)
+		task.wait(1)
+		for _, label in ipairs(labels) do
+			if label.Parent then
+				label:Destroy()
+			end
+		end
+	end)
 end
 
 local function addCorner(parent, radius)
@@ -194,10 +217,16 @@ function Library.new(config)
 		DisplayOrder = 1000,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, host)
+	preloadFonts(self.Gui)
+
+	local viewport = workspace.CurrentCamera.ViewportSize
 
 	self.Window = create("Frame", {
 		Size = windowSize,
-		Position = UDim2.new(0.5, -width / 2, 0.5, -height / 2),
+		Position = UDim2.fromOffset(
+			math.floor((viewport.X - width) / 2),
+			math.floor((viewport.Y - height) / 2)
+		),
 		BackgroundColor3 = COLORS.Background,
 		BorderSizePixel = 0,
 		Active = true,
@@ -314,9 +343,9 @@ function Library.new(config)
 			local delta = input.Position - dragStart
 			self.Window.Position = UDim2.new(
 				windowStart.X.Scale,
-				windowStart.X.Offset + delta.X,
+				windowStart.X.Offset + math.floor(delta.X + 0.5),
 				windowStart.Y.Scale,
-				windowStart.Y.Offset + delta.Y
+				windowStart.Y.Offset + math.floor(delta.Y + 0.5)
 			)
 		end
 	end)
