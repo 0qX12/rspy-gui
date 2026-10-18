@@ -1,6 +1,3 @@
--- Library.lua
--- RemoteSpy-only monochrome GUI library.
-
 local Library = {}
 Library.__index = Library
 
@@ -147,7 +144,7 @@ local SETTING_DESCRIPTIONS = {
 	["Autoblock"] = "Block matching remotes automatically",
 	["Logcheckcaller"] = "Include calls from the local caller",
 	["Advanced info"] = "Display extra call metadata",
-	["Banned remotes"] = "Review remotes hidden from the log",
+	["Banned remotes"] = "Review remotes hidden from capture",
 	["Clear logs"] = "Remove every captured entry",
 }
 
@@ -395,13 +392,6 @@ function Library.new(config)
 			ZIndex = 6,
 		}, leftPanel)
 		addGradient(leftHeader, Color3.fromRGB(22, 22, 28), Color3.fromRGB(12, 12, 16), 90)
-		addText(leftHeader, "remote log", 11, COLORS.Text, {
-			Position = UDim2.fromOffset(11, 0),
-			Size = UDim2.new(1, -80, 1, 0),
-			TextYAlignment = Enum.TextYAlignment.Center,
-			Font = FONTS.Bold,
-			ZIndex = 7,
-		})
 		local countLabel = addText(leftHeader, "0", 9, COLORS.Muted, {
 			Position = UDim2.new(1, -54, 0, 0),
 			Size = UDim2.fromOffset(40, 34),
@@ -811,7 +801,7 @@ function Library.new(config)
 					Font = FONTS.Semibold,
 					ZIndex = 38,
 				})
-				addText(item, "Hidden from the remote log", 9, COLORS.MutedDark, {
+				addText(item, "Hidden from capture list", 9, COLORS.MutedDark, {
 					Position = UDim2.fromOffset(14, 32),
 					Size = UDim2.new(1, -126, 0, 18),
 					TextTruncate = Enum.TextTruncate.AtEnd,
