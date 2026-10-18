@@ -77,6 +77,13 @@ local function addStroke(parent, color, transparency)
 	}, parent)
 end
 
+local function addGradient(parent, startColor, endColor, rotation)
+	return create("UIGradient", {
+		Color = ColorSequence.new(startColor, endColor),
+		Rotation = rotation or 90,
+	}, parent)
+end
+
 local function addText(parent, value, size, color, properties)
 	local textProperties = {
 		BackgroundTransparency = 1,
@@ -84,6 +91,8 @@ local function addText(parent, value, size, color, properties)
 		TextColor3 = color or COLORS.Text,
 		TextSize = size or 11,
 		Font = FONTS.Medium,
+		TextStrokeColor3 = COLORS.Background,
+		TextStrokeTransparency = 0.88,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}
 
@@ -153,6 +162,8 @@ function Library.new(config)
 	self.Gui = create("ScreenGui", {
 		Name = guiName,
 		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 1000,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, host)
 
@@ -167,6 +178,44 @@ function Library.new(config)
 	}, self.Gui)
 	addCorner(self.Window, 9)
 	addStroke(self.Window, COLORS.Line)
+	addGradient(self.Window, Color3.fromRGB(20, 20, 26), COLORS.Background, 90)
+
+	local shadow = create("Frame", {
+		Size = UDim2.new(windowSize.X.Scale, windowSize.X.Offset + 20, windowSize.Y.Scale, windowSize.Y.Offset + 20),
+		Position = UDim2.new(0.5, -width / 2 - 10, 0.5, -height / 2 - 10),
+		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 0.54,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, self.Gui)
+	addCorner(shadow, 16)
+	local shadowStroke = addStroke(shadow, Color3.new(0, 0, 0), 0.58)
+	shadowStroke.Thickness = 10
+
+	local halo = create("Frame", {
+		Size = windowSize,
+		Position = self.Window.Position,
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+	}, self.Gui)
+	addCorner(halo, 9)
+	local haloStroke = addStroke(halo, COLORS.LineBright, 0.88)
+	haloStroke.Thickness = 2
+	self._shadow = shadow
+	self._halo = halo
+
+	local function syncWindowDecor()
+		local position = self.Window.Position
+		shadow.Position = UDim2.new(
+			position.X.Scale,
+			position.X.Offset - 10,
+			position.Y.Scale,
+			position.Y.Offset - 10
+		)
+		halo.Position = position
+	end
+	syncWindowDecor()
 	local windowScale = create("UIScale", {Scale = 0.97}, self.Window)
 	TweenService:Create(windowScale, TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
 		Scale = 1,
@@ -193,6 +242,7 @@ function Library.new(config)
 		Active = true,
 		ZIndex = 5,
 	}, self.Window)
+	addGradient(topBar, Color3.fromRGB(25, 25, 31), Color3.fromRGB(13, 13, 17), 90)
 	addText(topBar, config.Title or "RemoteSpy", 12, COLORS.Text, {
 		Position = UDim2.fromOffset(12, 0),
 		Size = UDim2.new(1, -150, 1, 0),
@@ -222,6 +272,7 @@ function Library.new(config)
 		ClipsDescendants = true,
 		ZIndex = 3,
 	}, self.Window)
+	addGradient(body, Color3.fromRGB(15, 15, 19), COLORS.Background, 90)
 
 	self._body = body
 	self._topBar = topBar
@@ -269,6 +320,7 @@ function Library.new(config)
 				windowStart.Y.Scale,
 				windowStart.Y.Offset + delta.Y
 			)
+			syncWindowDecor()
 		end
 	end)
 	connect(UserInputService.InputEnded, function(input)
@@ -338,13 +390,16 @@ function Library.new(config)
 		}, self._body)
 		view._root = root
 		self._view = view
+		local leftWidth = 242
 
 		local leftPanel = create("Frame", {
-			Size = UDim2.new(0, 230, 1, 0),
+			Size = UDim2.new(0, leftWidth, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
 			BorderSizePixel = 0,
 			ZIndex = 5,
 		}, root)
+		addGradient(leftPanel, Color3.fromRGB(15, 15, 19), Color3.fromRGB(9, 9, 12), 90)
+		addStroke(leftPanel, COLORS.Line, 0.58)
 		create("Frame", {
 			Position = UDim2.new(1, -1, 0, 0),
 			Size = UDim2.new(0, 1, 1, 0),
@@ -359,7 +414,8 @@ function Library.new(config)
 			BorderSizePixel = 0,
 			ZIndex = 6,
 		}, leftPanel)
-		addText(leftHeader, "remote log", 10, COLORS.Text, {
+		addGradient(leftHeader, Color3.fromRGB(22, 22, 28), Color3.fromRGB(12, 12, 16), 90)
+		addText(leftHeader, "remote log", 11, COLORS.Text, {
 			Position = UDim2.fromOffset(11, 0),
 			Size = UDim2.new(1, -80, 1, 0),
 			TextYAlignment = Enum.TextYAlignment.Center,
@@ -383,8 +439,8 @@ function Library.new(config)
 		}, leftHeader)
 
 		local logList = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(8, 42),
-			Size = UDim2.new(1, -16, 1, -50),
+			Position = UDim2.fromOffset(9, 43),
+			Size = UDim2.new(1, -18, 1, -52),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 3,
@@ -393,18 +449,19 @@ function Library.new(config)
 			ZIndex = 6,
 		}, leftPanel)
 		create("UIListLayout", {
-			Padding = UDim.new(0, 4),
+			Padding = UDim.new(0, 7),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, logList)
 
 		local detailPanel = create("Frame", {
-			Position = UDim2.fromOffset(230, 0),
-			Size = UDim2.new(1, -230, 1, 0),
+			Position = UDim2.fromOffset(leftWidth, 0),
+			Size = UDim2.new(1, -leftWidth, 1, 0),
 			BackgroundColor3 = COLORS.Background,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
 			ZIndex = 5,
 		}, root)
+		addGradient(detailPanel, Color3.fromRGB(19, 19, 24), COLORS.Background, 90)
 
 		local codePanel = create("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
@@ -414,16 +471,17 @@ function Library.new(config)
 			ZIndex = 6,
 		}, detailPanel)
 		addStroke(codePanel, COLORS.Line, 0.25)
+		addGradient(codePanel, Color3.fromRGB(25, 25, 31), Color3.fromRGB(15, 15, 19), 90)
 		local codeLabel = addText(codePanel, options.Code or "-- no remote selected", 12, COLORS.Text, {
-			Position = UDim2.fromOffset(13, 14),
-			Size = UDim2.new(1, -26, 1, -28),
+			Position = UDim2.fromOffset(18, 17),
+			Size = UDim2.new(1, -36, 1, -34),
 			Font = FONTS.Code,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextWrapped = false,
 			ZIndex = 7,
 		})
 
-		local settingsButton = create("TextButton", {
+	local settingsButton = create("TextButton", {
 			Position = UDim2.new(0, 9, 1, -36),
 			Size = UDim2.new(1, -19, 0, 27),
 			BackgroundColor3 = COLORS.Control,
@@ -433,9 +491,10 @@ function Library.new(config)
 			Font = FONTS.Semibold,
 			AutoButtonColor = false,
 			ZIndex = 12,
-		}, leftPanel)
-		addCorner(settingsButton, 5)
-		addStroke(settingsButton, COLORS.Line, 0.15)
+	}, leftPanel)
+	addCorner(settingsButton, 5)
+	addStroke(settingsButton, COLORS.Line, 0.15)
+	addGradient(settingsButton, Color3.fromRGB(43, 43, 51), COLORS.Control, 90)
 
 		local settingsPanel = create("Frame", {
 			Position = UDim2.fromOffset(0, 0),
@@ -446,8 +505,9 @@ function Library.new(config)
 			ClipsDescendants = true,
 			ZIndex = 8,
 			Visible = false,
-		}, root)
-		addStroke(settingsPanel, COLORS.Line, 0.1)
+	}, root)
+	addStroke(settingsPanel, COLORS.Line, 0.1)
+	addGradient(settingsPanel, Color3.fromRGB(24, 24, 30), Color3.fromRGB(12, 12, 16), 90)
 		addText(settingsPanel, "settings", 10, COLORS.Text, {
 			Position = UDim2.fromOffset(13, 7),
 			Size = UDim2.new(1, -26, 0, 22),
@@ -544,6 +604,7 @@ function Library.new(config)
 		}, root)
 		addCorner(contextMenu, 6)
 		addStroke(contextMenu, COLORS.LineBright, 0.1)
+		addGradient(contextMenu, Color3.fromRGB(43, 43, 51), Color3.fromRGB(24, 24, 30), 90)
 		local contextScale = create("UIScale", {Scale = 0.96}, contextMenu)
 		local contextList = create("Frame", {
 			Position = UDim2.fromOffset(5, 5),
@@ -564,6 +625,7 @@ function Library.new(config)
 			ZIndex = 30,
 		}, root)
 		addStroke(bannedPanel, COLORS.LineBright, 0.1)
+		addGradient(bannedPanel, Color3.fromRGB(24, 24, 30), Color3.fromRGB(11, 11, 14), 90)
 		addText(bannedPanel, "banned remotes", 10, COLORS.Text, {
 			Position = UDim2.fromOffset(18, 10),
 			Size = UDim2.new(1, -70, 0, 24),
@@ -603,7 +665,7 @@ function Library.new(config)
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 31,
 		}, bannedPanel)
-		create("UIListLayout", {Padding = UDim.new(0, 4)}, bannedList)
+		create("UIListLayout", {Padding = UDim.new(0, 6)}, bannedList)
 		local bannedScale = create("UIScale", {Scale = 0.985}, bannedPanel)
 		local function showBanned()
 			settingsPanel.Visible = false
@@ -654,15 +716,19 @@ function Library.new(config)
 				TweenService:Create(view._selected.row, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 					BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 				}):Play()
-				view._selected.selectionStroke.Transparency = 1
+				TweenService:Create(view._selected.selectionStroke, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					Transparency = 1,
+				}):Play()
 			end
 
 			view._selected = target
-		TweenService:Create(target.row, TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-			BackgroundColor3 = Color3.fromRGB(38, 38, 46),
-		}):Play()
-		target.selectionStroke.Transparency = 0.2
-			view:SetCode(target.data.Code or "-- no selected call", target.name)
+			TweenService:Create(target.row, TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				BackgroundColor3 = Color3.fromRGB(38, 38, 46),
+			}):Play()
+			TweenService:Create(target.selectionStroke, TweenInfo.new(0.16, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Transparency = 0.2,
+			}):Play()
+			view:SetCode(target.data.Code or "-- no selected call")
 			safeCallback(target.data.Callback, target.data, view)
 		end
 
@@ -675,17 +741,29 @@ function Library.new(config)
 
 			for name in pairs(view._banned) do
 				local item = create("TextButton", {
-					Size = UDim2.new(1, 0, 0, 28),
+					Size = UDim2.new(1, 0, 0, 32),
 					BackgroundColor3 = COLORS.Control,
 					Text = "  " .. tostring(name) .. "                         unban",
 					TextColor3 = COLORS.Text,
-					TextSize = 9,
+					TextSize = 10,
 					Font = FONTS.Medium,
 					TextXAlignment = Enum.TextXAlignment.Left,
 					AutoButtonColor = false,
 					ZIndex = 37,
 				}, bannedList)
 				addCorner(item, 4)
+				addStroke(item, COLORS.Line, 0.35)
+				addGradient(item, Color3.fromRGB(38, 38, 46), Color3.fromRGB(26, 26, 32), 90)
+				connect(item.MouseEnter, function()
+					TweenService:Create(item, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(48, 48, 57),
+					}):Play()
+				end)
+				connect(item.MouseLeave, function()
+					TweenService:Create(item, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = COLORS.Control,
+					}):Play()
+				end)
 				connect(item.MouseButton1Click, function()
 					view._banned[name] = nil
 					for _, target in ipairs(view._logs) do
@@ -714,7 +792,7 @@ function Library.new(config)
 
 			if view._selected and view._selected.name == name then
 				view._selected = nil
-				view:SetCode("-- remote is banned", "banned")
+				view:SetCode("-- remote is banned")
 			end
 
 			contextMenu.Visible = false
@@ -802,13 +880,13 @@ function Library.new(config)
 		end
 
 		contextAction("Run preview", function(data)
-			view:SetCode(data.Code or "-- no selected call", "preview only")
+			view:SetCode(data.Code or "-- no selected call")
 		end)
 		contextAction("Copy code", function(data)
 			if type(setclipboard) == "function" then
 				pcall(setclipboard, tostring(data.Code or ""))
 			end
-			view:SetCode(data.Code or "-- no selected call", "copied")
+			view:SetCode(data.Code or "-- no selected call")
 		end)
 		contextAction("Ban remote", function(data)
 			view:Ban(data)
@@ -819,7 +897,7 @@ function Library.new(config)
 			local remoteName = displayName(data.Name)
 			local remoteType = string.lower(tostring(data.Type or "event"))
 			local row = create("TextButton", {
-				Size = UDim2.new(1, 0, 0, 32),
+				Size = UDim2.new(1, 0, 0, 34),
 				BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 				Text = "",
 				AutoButtonColor = false,
@@ -827,15 +905,17 @@ function Library.new(config)
 			}, logList)
 			addCorner(row, 4)
 			addStroke(row, COLORS.Line, 0.35)
+			addGradient(row, Color3.fromRGB(23, 23, 29), Color3.fromRGB(15, 15, 19), 90)
 			create("Frame", {
-				Size = UDim2.new(0, 3, 1, 0),
+				Size = UDim2.new(0, 4, 1, 0),
 				BackgroundColor3 = data.Color or typeColor(remoteType),
 				BorderSizePixel = 0,
 				ZIndex = 8,
 			}, row)
 			local selectionStroke = addStroke(row, data.Color or typeColor(remoteType), 1)
-			addText(row, remoteName, 10, COLORS.Text, {
-				Position = UDim2.fromOffset(12, 0),
+			selectionStroke.Thickness = 1.25
+			addText(row, remoteName, 11, COLORS.Text, {
+				Position = UDim2.fromOffset(14, 0),
 				Size = UDim2.new(1, -72, 1, 0),
 				TextYAlignment = Enum.TextYAlignment.Center,
 				TextTruncate = Enum.TextTruncate.AtEnd,
@@ -883,14 +963,15 @@ function Library.new(config)
 		function view:AddSetting(name, callback, settingOptions)
 			settingOptions = settingOptions or {}
 			local row = create("Frame", {
-				Size = UDim2.new(1, 0, 0, 30),
+				Size = UDim2.new(1, 0, 0, 34),
 				BackgroundColor3 = COLORS.Panel,
 				BorderSizePixel = 0,
 				ZIndex = 10,
 			}, settingsList)
 			addCorner(row, 4)
 			addStroke(row, COLORS.Line, 0.4)
-			addText(row, name, 10, COLORS.Muted, {
+			addGradient(row, Color3.fromRGB(25, 25, 31), Color3.fromRGB(17, 17, 22), 90)
+			addText(row, name, 11, COLORS.Muted, {
 				Position = UDim2.fromOffset(9, 0),
 				Size = UDim2.new(1, -115, 1, 0),
 				TextYAlignment = Enum.TextYAlignment.Center,
@@ -911,6 +992,7 @@ function Library.new(config)
 				}, row)
 				addCorner(toggle, 6)
 				addStroke(toggle, COLORS.Line)
+				addGradient(toggle, Color3.fromRGB(43, 43, 51), COLORS.Control, 90)
 				local knob = create("Frame", {
 					Size = UDim2.fromOffset(10, 10),
 					BorderSizePixel = 0,
@@ -953,13 +1035,14 @@ function Library.new(config)
 				BackgroundColor3 = COLORS.Control,
 				Text = settingOptions.Value or "open",
 				TextColor3 = COLORS.Text,
-				TextSize = 9,
+				TextSize = 10,
 				Font = FONTS.Semibold,
 				AutoButtonColor = false,
 				ZIndex = 12,
 			}, row)
 			addCorner(button, 4)
 			addStroke(button, COLORS.Line, 0.15)
+			addGradient(button, Color3.fromRGB(43, 43, 51), COLORS.Control, 90)
 			connect(button.MouseEnter, function()
 				TweenService:Create(button, TweenInfo.new(0.1), {
 					BackgroundColor3 = Color3.fromRGB(42, 42, 50),
@@ -986,7 +1069,7 @@ function Library.new(config)
 			end
 			table.clear(view._logs)
 			view._selected = nil
-			view:SetCode("-- no remote selected", "preview")
+			view:SetCode("-- no remote selected")
 			updateCount()
 		end
 
@@ -1009,6 +1092,7 @@ function Library.new(config)
 		}, self.Gui)
 		addCorner(notification, 6)
 		addStroke(notification, COLORS.LineBright)
+		addGradient(notification, Color3.fromRGB(43, 43, 51), Color3.fromRGB(23, 23, 29), 90)
 		create("Frame", {
 			Position = UDim2.fromOffset(7, 8),
 			Size = UDim2.new(0, 2, 1, -16),
