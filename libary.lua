@@ -541,7 +541,7 @@ function Library.new(config)
 		end
 	end
 
-	function self:RemoteSpy(options)
+	function self:_LegacyRemoteSpy(options)
 		options = options or {}
 
 		if self._spyRoot then
@@ -1399,6 +1399,428 @@ function Library.new(config)
 		end
 
 		return tab
+	end
+
+	function self:RemoteSpy(options)
+		options = options or {}
+
+		if self._spyRoot then
+			self._spyRoot:Destroy()
+		end
+		if self._singleHeader then
+			self._singleHeader.Visible = false
+		end
+
+		local view = {
+			_logs = {},
+			_banned = {},
+			_bannedRows = {},
+			_selected = nil,
+			_contextTarget = nil,
+			_library = self,
+		}
+		local root = create("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			ZIndex = 4,
+		}, self._content)
+		self._spyRoot = root
+
+		local topBar = create("Frame", {
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
+			BorderSizePixel = 0,
+			Active = true,
+			ZIndex = 5,
+		}, root)
+		addText(topBar, options.Title or "RemoteSpy", 11, COLORS.Text, {
+			Position = UDim2.fromOffset(10, 0),
+			Size = UDim2.new(1, -130, 1, 0),
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Font = FONTS.Bold,
+			ZIndex = 6,
+		})
+		addText(topBar, options.Status or "visual preview", 9, COLORS.Muted, {
+			Position = UDim2.new(1, -108, 0, 0),
+			Size = UDim2.fromOffset(82, 30),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Font = FONTS.Medium,
+			ZIndex = 6,
+		})
+		local closeButton = create("TextButton", {
+			Position = UDim2.new(1, -25, 0, 5),
+			Size = UDim2.fromOffset(20, 20),
+			BackgroundColor3 = COLORS.Control,
+			Text = "×",
+			TextColor3 = COLORS.Muted,
+			TextSize = 14,
+			Font = FONTS.Medium,
+			AutoButtonColor = false,
+			ZIndex = 7,
+		}, topBar)
+		addCorner(closeButton, 5)
+		addStroke(closeButton, COLORS.Line, 0.25)
+		connect(closeButton.MouseButton1Click, function()
+			self:Destroy()
+		end)
+		connect(topBar.InputBegan, function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.Touch then
+				dragging = true
+				dragStart = input.Position
+				windowStart = self.Window.Position
+			end
+		end)
+
+		local body = create("Frame", {
+			Position = UDim2.fromOffset(0, 30),
+			Size = UDim2.new(1, 0, 1, -30),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			ZIndex = 4,
+		}, root)
+		local leftPanel = create("Frame", {
+			Size = UDim2.new(0, 178, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		}, body)
+		create("Frame", {
+			Position = UDim2.new(1, -1, 0, 0),
+			Size = UDim2.new(0, 1, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(29, 29, 35),
+			BorderSizePixel = 0,
+			ZIndex = 7,
+		}, leftPanel)
+		local logList = create("ScrollingFrame", {
+			Position = UDim2.fromOffset(9, 8),
+			Size = UDim2.new(1, -18, 1, -151),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = COLORS.LineBright,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ZIndex = 6,
+		}, leftPanel)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 4),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, logList)
+
+		local settingsPanel = create("Frame", {
+			Position = UDim2.new(0, 0, 1, -143),
+			Size = UDim2.new(1, -1, 0, 143),
+			BackgroundColor3 = Color3.fromRGB(13, 13, 17),
+			BorderSizePixel = 0,
+			ZIndex = 6,
+		}, leftPanel)
+		create("Frame", {
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = Color3.fromRGB(29, 29, 35),
+			BorderSizePixel = 0,
+			ZIndex = 7,
+		}, settingsPanel)
+		addText(settingsPanel, "settings", 9, COLORS.Muted, {
+			Position = UDim2.fromOffset(10, 8),
+			Size = UDim2.new(1, -20, 0, 18),
+			Font = FONTS.Bold,
+			ZIndex = 7,
+		})
+		local settingsList = create("Frame", {
+			Position = UDim2.fromOffset(8, 31),
+			Size = UDim2.new(1, -16, 1, -37),
+			BackgroundTransparency = 1,
+			ZIndex = 7,
+		}, settingsPanel)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 5),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, settingsList)
+
+		local detailPanel = create("Frame", {
+			Position = UDim2.fromOffset(178, 0),
+			Size = UDim2.new(1, -178, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			ZIndex = 5,
+		}, body)
+		local codePanel = create("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(18, 18, 23),
+			BorderSizePixel = 0,
+			ZIndex = 6,
+		}, detailPanel)
+		addStroke(codePanel, Color3.fromRGB(36, 36, 43), 0.25)
+		addText(codePanel, "generated request", 9, COLORS.Muted, {
+			Position = UDim2.fromOffset(12, 9),
+			Size = UDim2.new(1, -24, 0, 16),
+			Font = FONTS.Bold,
+			ZIndex = 7,
+		})
+		local codeLabel = addText(codePanel, options.Code or "-- no remote selected", 12, COLORS.Text, {
+			Position = UDim2.fromOffset(12, 32),
+			Size = UDim2.new(1, -24, 1, -44),
+			Font = Enum.Font.Code,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextWrapped = false,
+			ZIndex = 7,
+		})
+
+		local contextMenu = create("Frame", {
+			Size = UDim2.fromOffset(138, 118),
+			BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = 30,
+		}, root)
+		addCorner(contextMenu, 6)
+		addStroke(contextMenu, COLORS.LineBright, 0.15)
+		addText(contextMenu, "remote", 8, COLORS.Muted, {
+			Position = UDim2.fromOffset(9, 5),
+			Size = UDim2.new(1, -18, 0, 14),
+			Font = FONTS.Bold,
+			ZIndex = 31,
+		})
+		local contextList = create("Frame", {
+			Position = UDim2.fromOffset(5, 23),
+			Size = UDim2.new(1, -10, 1, -28),
+			BackgroundTransparency = 1,
+			ZIndex = 31,
+		}, contextMenu)
+		create("UIListLayout", {Padding = UDim.new(0, 3)}, contextList)
+
+		local bannedPanel = create("Frame", {
+			Position = UDim2.fromOffset(190, 52),
+			Size = UDim2.fromOffset(300, 280),
+			BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+			BorderSizePixel = 0,
+			Visible = false,
+			ZIndex = 25,
+		}, root)
+		addCorner(bannedPanel, 7)
+		addStroke(bannedPanel, COLORS.LineBright, 0.1)
+		addText(bannedPanel, "banned remotes", 10, COLORS.Text, {
+			Position = UDim2.fromOffset(12, 8),
+			Size = UDim2.new(1, -24, 0, 20),
+			Font = FONTS.Bold,
+			ZIndex = 26,
+		})
+		local bannedList = create("ScrollingFrame", {
+			Position = UDim2.fromOffset(8, 34),
+			Size = UDim2.new(1, -16, 1, -42),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 3,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ZIndex = 26,
+		}, bannedPanel)
+		create("UIListLayout", {Padding = UDim.new(0, 4)}, bannedList)
+
+		function view:SetCode(code)
+			codeLabel.Text = tostring(code or "")
+		end
+
+		function view:RefreshBanned()
+			for _, item in ipairs(bannedList:GetChildren()) do
+				if item:IsA("GuiObject") then
+					item:Destroy()
+				end
+			end
+			for name, row in pairs(view._bannedRows) do
+				local item = create("TextButton", {
+					Size = UDim2.new(1, 0, 0, 28),
+					BackgroundColor3 = COLORS.Control,
+					Text = "  " .. name .. "                         unban",
+					TextColor3 = COLORS.Text,
+					TextSize = 9,
+					Font = FONTS.Medium,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					AutoButtonColor = false,
+					ZIndex = 27,
+				}, bannedList)
+				addCorner(item, 4)
+				connect(item.MouseButton1Click, function()
+					view._banned[name] = nil
+					row.Visible = true
+					view._bannedRows[name] = nil
+					view:RefreshBanned()
+				end)
+			end
+		end
+
+		function view:Ban(data, row)
+			if not data or not data.Name then
+				return
+			end
+			view._banned[data.Name] = data
+			view._bannedRows[data.Name] = row
+			row.Visible = false
+			contextMenu.Visible = false
+			view:RefreshBanned()
+		end
+
+		function view:OpenBanned()
+			view:RefreshBanned()
+			bannedPanel.Visible = not bannedPanel.Visible
+			contextMenu.Visible = false
+		end
+
+		local function closeContext()
+			contextMenu.Visible = false
+			view._contextTarget = nil
+		end
+
+		local function contextAction(name, callback)
+			local button = create("TextButton", {
+				Size = UDim2.new(1, 0, 0, 25),
+				BackgroundColor3 = COLORS.Control,
+				Text = "  " .. name,
+				TextColor3 = COLORS.Text,
+				TextSize = 10,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Font = FONTS.Medium,
+				AutoButtonColor = false,
+				ZIndex = 32,
+			}, contextList)
+			addCorner(button, 4)
+			connect(button.MouseEnter, function()
+				button.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+			end)
+			connect(button.MouseLeave, function()
+				button.BackgroundColor3 = COLORS.Control
+			end)
+			connect(button.MouseButton1Click, function()
+				local target = view._contextTarget
+				closeContext()
+				if target then
+					callback(target.data, target.row)
+				end
+			end)
+			return button
+		end
+
+		contextAction("Run again", function(data)
+			view:SetCode(data.Code or "-- run again preview")
+		end)
+		contextAction("Copy", function(data)
+			view:SetCode("-- copy preview\n-- " .. tostring(data.Name or "Remote"))
+		end)
+		contextAction("Ban", function(data, row)
+			view:Ban(data, row)
+		end)
+
+		function view:AddSetting(name, callback)
+			local button = create("TextButton", {
+				Size = UDim2.new(1, 0, 0, 27),
+				BackgroundColor3 = COLORS.Control,
+				Text = "  " .. tostring(name),
+				TextColor3 = COLORS.Text,
+				TextSize = 9,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Font = FONTS.Medium,
+				AutoButtonColor = false,
+				ZIndex = 8,
+			}, settingsList)
+			addCorner(button, 4)
+			connect(button.MouseEnter, function()
+				button.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+			end)
+			connect(button.MouseLeave, function()
+				button.BackgroundColor3 = COLORS.Control
+			end)
+			connect(button.MouseButton1Click, function()
+				if type(callback) == "function" then
+					callback(view)
+				end
+			end)
+			return button
+		end
+
+		function view:AddLog(entry)
+			local data = type(entry) == "table" and entry or {Name = tostring(entry)}
+			local row = create("TextButton", {
+				Size = UDim2.new(1, 0, 0, 29),
+				BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+				Text = "",
+				AutoButtonColor = false,
+				ZIndex = 8,
+			}, logList)
+			addCorner(row, 4)
+			addStroke(row, Color3.fromRGB(36, 36, 43), 0.35)
+			create("Frame", {
+				Size = UDim2.new(0, 3, 1, 0),
+				BackgroundColor3 = data.Color or (data.Type == "function" and Color3.fromRGB(115, 100, 240) or Color3.fromRGB(238, 220, 40)),
+				BorderSizePixel = 0,
+				ZIndex = 9,
+			}, row)
+			addText(row, data.Name or "Remote", 10, COLORS.Text, {
+				Position = UDim2.fromOffset(11, 0),
+				Size = UDim2.new(1, -16, 1, 0),
+				TextYAlignment = Enum.TextYAlignment.Center,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Font = FONTS.Medium,
+				ZIndex = 9,
+			})
+			local target = {data = data, row = row}
+			connect(row.MouseEnter, function()
+				if view._selected ~= target then
+					row.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+				end
+			end)
+			connect(row.MouseLeave, function()
+				if view._selected ~= target then
+					row.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
+				end
+			end)
+			connect(row.InputBegan, function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton2 then
+					view._contextTarget = target
+					local rootPosition = root.AbsolutePosition
+					local x = math.clamp(input.Position.X - rootPosition.X + 4, 4, math.max(root.AbsoluteSize.X - 146, 4))
+					local y = math.clamp(input.Position.Y - rootPosition.Y + 4, 34, math.max(root.AbsoluteSize.Y - 124, 34))
+					contextMenu.Position = UDim2.fromOffset(x, y)
+					contextMenu.Visible = true
+				end
+			end)
+			connect(row.MouseButton1Click, function()
+				if view._selected then
+					view._selected.row.BackgroundColor3 = Color3.fromRGB(17, 17, 21)
+				end
+				view._selected = target
+				row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+				view:SetCode(data.Code or "-- no generated request")
+			end)
+			row.Visible = view._banned[data.Name] == nil
+			if not row.Visible then
+				view._bannedRows[data.Name] = row
+			end
+			table.insert(view._logs, target)
+			if not view._selected and row.Visible then
+				view._selected = target
+				row.BackgroundColor3 = Color3.fromRGB(31, 31, 37)
+				view:SetCode(data.Code or "-- no generated request")
+			end
+			return row
+		end
+
+		function view:Clear()
+			for _, target in ipairs(view._logs) do
+				if target.row then
+					target.row:Destroy()
+				end
+			end
+			table.clear(view._logs)
+			view._selected = nil
+			view:SetCode("-- no remote selected")
+		end
+
+		return view
 	end
 
 	function self:SelectTab(activeTab)
