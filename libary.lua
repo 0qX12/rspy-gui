@@ -210,6 +210,7 @@ local SETTING_DESCRIPTIONS = {
 	["Autoblock"] = "Block matching remotes automatically",
 	["Logcheckcaller"] = "Include calls from the local caller",
 	["Advanced info"] = "Display extra call metadata",
+	["Toggle key"] = "Change the key used to hide or restore RemoteSpy",
 	["Banned remotes"] = "Review remotes hidden from capture",
 	["Clear logs"] = "Remove every captured entry",
 }
@@ -223,6 +224,7 @@ function Library.new(config)
 		_destroyed = false,
 		_hidden = false,
 		_toggleKey = resolveKeyCode(config.ToggleKey),
+		_onToggleKeyChanged = config.OnToggleKeyChanged,
 		_keyCapture = false,
 		_windowAppearance = nil,
 		_visibilityVersion = 0,
@@ -515,6 +517,11 @@ function Library.new(config)
 
 	function self:SetToggleKey(value)
 		self._toggleKey = resolveKeyCode(value)
+		if type(self._onToggleKeyChanged) == "function" then
+			task.spawn(function()
+				pcall(self._onToggleKeyChanged, self._toggleKey)
+			end)
+		end
 		return self._toggleKey
 	end
 
@@ -1672,6 +1679,14 @@ function Library.new(config)
 		end
 
 		view.AddAction = view.AddSetting
+
+		view:AddSetting("Toggle key", function(value)
+			self:SetToggleKey(value)
+		end, {
+			Type = "keybind",
+			Default = self._toggleKey,
+			Description = "Change the key used to hide or restore RemoteSpy",
+		})
 
 		function view:Clear()
 			for _, target in ipairs(view._logs) do
