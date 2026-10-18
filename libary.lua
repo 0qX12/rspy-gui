@@ -1,3 +1,6 @@
+-- Library.lua
+-- RemoteSpy-only monochrome GUI library.
+
 local Library = {}
 Library.__index = Library
 
@@ -506,17 +509,15 @@ function Library.new(config)
 		})
 
 		local settingsButton = create("ImageButton", {
-			Position = UDim2.new(0, 9, 1, -39),
-			Size = UDim2.fromOffset(30, 30),
-			BackgroundColor3 = Color3.fromRGB(25, 25, 31),
+			Position = UDim2.new(0, 12, 1, -36),
+			Size = UDim2.fromOffset(24, 24),
+			BackgroundTransparency = 1,
 			AutoButtonColor = false,
 			ZIndex = 12,
 		}, leftPanel)
 		for property, value in pairs(iconProperties(ICONS.Settings, COLORS.Muted, 0.06)) do
 			settingsButton[property] = value
 		end
-		addCorner(settingsButton, 5)
-		addStroke(settingsButton, COLORS.Line, 0.15)
 
 		local settingsPanel = create("Frame", {
 			Position = UDim2.fromOffset(0, 0),
@@ -623,14 +624,12 @@ function Library.new(config)
 
 		connect(settingsButton.MouseEnter, function()
 			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
-				BackgroundColor3 = COLORS.PanelRaised,
 				ImageColor3 = COLORS.Text,
 				ImageTransparency = 0,
 			}):Play()
 		end)
 		connect(settingsButton.MouseLeave, function()
 			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
-				BackgroundColor3 = Color3.fromRGB(25, 25, 31),
 				ImageColor3 = COLORS.Muted,
 				ImageTransparency = 0.06,
 			}):Play()
@@ -643,6 +642,7 @@ function Library.new(config)
 			BackgroundColor3 = COLORS.PanelRaised,
 			BorderSizePixel = 0,
 			ClipsDescendants = true,
+			Active = true,
 			Visible = false,
 			ZIndex = 40,
 		}, root)
@@ -654,6 +654,7 @@ function Library.new(config)
 			Position = UDim2.fromOffset(7, 7),
 			Size = UDim2.new(1, -14, 1, -14),
 			BackgroundTransparency = 1,
+			Active = true,
 			ZIndex = 41,
 		}, contextMenu)
 		create("UIListLayout", {
@@ -937,6 +938,13 @@ function Library.new(config)
 			fade:Play()
 		end
 		local function openContext(position)
+			for _, target in ipairs(view._logs) do
+				if view._selected ~= target and target.row.Parent then
+					TweenService:Create(target.row, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						BackgroundColor3 = Color3.fromRGB(17, 17, 21),
+					}):Play()
+				end
+			end
 			contextMenu.Position = position
 			contextMenu.Visible = true
 			contextScale.Scale = 0.96
@@ -1045,14 +1053,14 @@ function Library.new(config)
 			})
 			local target = {data = data, name = remoteName, row = row, selectionStroke = selectionStroke}
 			connect(row.MouseEnter, function()
-				if view._selected ~= target then
+				if not contextMenu.Visible and view._selected ~= target then
 					TweenService:Create(row, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundColor3 = Color3.fromRGB(28, 28, 35),
 					}):Play()
 				end
 			end)
 			connect(row.MouseLeave, function()
-				if view._selected ~= target then
+				if not contextMenu.Visible and view._selected ~= target then
 					TweenService:Create(row, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 					}):Play()
