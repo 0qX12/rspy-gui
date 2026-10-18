@@ -31,6 +31,11 @@ local FONTS = {
 	Code = Enum.Font.Code,
 }
 
+local ICONS = {
+	Settings = "rbxassetid://129338365599931",
+	Close = "rbxassetid://77236530693648",
+}
+
 local function getGuiParent()
 	local ok, holder = pcall(function()
 		if type(gethui) == "function" then
@@ -230,14 +235,14 @@ function Library.new(config)
 		Font = FONTS.Bold,
 		ZIndex = 6,
 	})
-	local closeButton = create("TextButton", {
+	local closeButton = create("ImageButton", {
 		Position = UDim2.new(1, -27, 0, 6),
 		Size = UDim2.fromOffset(20, 20),
 		BackgroundColor3 = COLORS.Control,
-		Text = "×",
-		TextColor3 = COLORS.Muted,
-		TextSize = 14,
-		Font = FONTS.Medium,
+		Image = ICONS.Close,
+		ImageColor3 = COLORS.Muted,
+		ImageTransparency = 0.08,
+		ScaleType = Enum.ScaleType.Fit,
 		AutoButtonColor = false,
 		ZIndex = 7,
 	}, topBar)
@@ -266,13 +271,15 @@ function Library.new(config)
 	connect(closeButton.MouseEnter, function()
 		TweenService:Create(closeButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			BackgroundColor3 = Color3.fromRGB(120, 46, 52),
-			TextColor3 = COLORS.Text,
+			ImageColor3 = COLORS.Text,
+			ImageTransparency = 0,
 		}):Play()
 	end)
 	connect(closeButton.MouseLeave, function()
 		TweenService:Create(closeButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			BackgroundColor3 = COLORS.Control,
-			TextColor3 = COLORS.Muted,
+			ImageColor3 = COLORS.Muted,
+			ImageTransparency = 0.08,
 		}):Play()
 	end)
 	connect(closeButton.MouseButton1Click, function()
@@ -393,9 +400,9 @@ function Library.new(config)
 			Size = UDim2.new(1, -18, 1, -52),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 4,
+			ScrollBarThickness = 0,
 			ScrollBarImageColor3 = COLORS.LineBright,
-			ScrollBarImageTransparency = 0.2,
+			ScrollBarImageTransparency = 1,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 6,
 		}, leftPanel)
@@ -439,14 +446,14 @@ function Library.new(config)
 			ZIndex = 7,
 		})
 
-		local settingsButton = create("TextButton", {
-			Position = UDim2.new(0, 9, 1, -36),
-			Size = UDim2.new(1, -19, 0, 27),
+		local settingsButton = create("ImageButton", {
+			Position = UDim2.new(0, 9, 1, -39),
+			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = Color3.fromRGB(25, 25, 31),
-			Text = "settings",
-			TextColor3 = COLORS.Text,
-			TextSize = 10,
-			Font = FONTS.Semibold,
+			Image = ICONS.Settings,
+			ImageColor3 = COLORS.Muted,
+			ImageTransparency = 0.06,
+			ScaleType = Enum.ScaleType.Fit,
 			AutoButtonColor = false,
 			ZIndex = 12,
 		}, leftPanel)
@@ -483,14 +490,14 @@ function Library.new(config)
 			BorderSizePixel = 0,
 			ZIndex = 9,
 		}, settingsPanel)
-		local settingsClose = create("TextButton", {
+		local settingsClose = create("ImageButton", {
 			Position = UDim2.new(1, -54, 0, 14),
 			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = COLORS.Control,
-			Text = "×",
-			TextColor3 = COLORS.Muted,
-			TextSize = 16,
-			Font = FONTS.Medium,
+			Image = ICONS.Close,
+			ImageColor3 = COLORS.Muted,
+			ImageTransparency = 0.08,
+			ScaleType = Enum.ScaleType.Fit,
 			AutoButtonColor = false,
 			ZIndex = 10,
 		}, settingsPanel)
@@ -499,13 +506,15 @@ function Library.new(config)
 		connect(settingsClose.MouseEnter, function()
 			TweenService:Create(settingsClose, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.PanelRaised,
-				TextColor3 = COLORS.Text,
+				ImageColor3 = COLORS.Text,
+				ImageTransparency = 0,
 			}):Play()
 		end)
 		connect(settingsClose.MouseLeave, function()
 			TweenService:Create(settingsClose, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.Control,
-				TextColor3 = COLORS.Muted,
+				ImageColor3 = COLORS.Muted,
+				ImageTransparency = 0.08,
 			}):Play()
 		end)
 		local settingsScale = create("UIScale", {Scale = 0.985}, settingsPanel)
@@ -514,9 +523,9 @@ function Library.new(config)
 			Size = UDim2.new(1, -48, 1, -112),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 4,
+			ScrollBarThickness = 0,
 			ScrollBarImageColor3 = COLORS.LineBright,
-			ScrollBarImageTransparency = 0.2,
+			ScrollBarImageTransparency = 1,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 9,
 		}, settingsPanel)
@@ -558,13 +567,15 @@ function Library.new(config)
 		connect(settingsButton.MouseEnter, function()
 			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.PanelRaised,
-				TextColor3 = COLORS.Text,
+				ImageColor3 = COLORS.Text,
+				ImageTransparency = 0,
 			}):Play()
 		end)
 		connect(settingsButton.MouseLeave, function()
 			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
 				BackgroundColor3 = Color3.fromRGB(25, 25, 31),
-				TextColor3 = COLORS.Text,
+				ImageColor3 = COLORS.Muted,
+				ImageTransparency = 0.06,
 			}):Play()
 		end)
 		connect(settingsButton.MouseButton1Click, showSettings)
@@ -626,14 +637,14 @@ function Library.new(config)
 			BorderSizePixel = 0,
 			ZIndex = 31,
 		}, bannedPanel)
-		local bannedClose = create("TextButton", {
+		local bannedClose = create("ImageButton", {
 			Position = UDim2.new(1, -54, 0, 14),
 			Size = UDim2.fromOffset(30, 30),
 			BackgroundColor3 = COLORS.Control,
-			Text = "×",
-			TextColor3 = COLORS.Muted,
-			TextSize = 16,
-			Font = FONTS.Medium,
+			Image = ICONS.Close,
+			ImageColor3 = COLORS.Muted,
+			ImageTransparency = 0.08,
+			ScaleType = Enum.ScaleType.Fit,
 			AutoButtonColor = false,
 			ZIndex = 32,
 		}, bannedPanel)
@@ -642,13 +653,15 @@ function Library.new(config)
 		connect(bannedClose.MouseEnter, function()
 			TweenService:Create(bannedClose, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.PanelRaised,
-				TextColor3 = COLORS.Text,
+				ImageColor3 = COLORS.Text,
+				ImageTransparency = 0,
 			}):Play()
 		end)
 		connect(bannedClose.MouseLeave, function()
 			TweenService:Create(bannedClose, TweenInfo.new(0.12), {
 				BackgroundColor3 = COLORS.Control,
-				TextColor3 = COLORS.Muted,
+				ImageColor3 = COLORS.Muted,
+				ImageTransparency = 0.08,
 			}):Play()
 		end)
 		local bannedList = create("ScrollingFrame", {
@@ -656,10 +669,10 @@ function Library.new(config)
 			Size = UDim2.new(1, -48, 1, -112),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 4,
+			ScrollBarThickness = 0,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ScrollBarImageColor3 = COLORS.LineBright,
-			ScrollBarImageTransparency = 0.2,
+			ScrollBarImageTransparency = 1,
 			ZIndex = 31,
 		}, bannedPanel)
 		create("UIListLayout", {
