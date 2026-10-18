@@ -401,6 +401,7 @@ function Library.new(config)
 		ZIndex = 1,
 	}, self.Window)
 	local pages = create("Folder", {}, content)
+	self._content = content
 	if singleView then
 		local header = create("Frame", {
 			Size = UDim2.new(1, 0, 0, 42),
@@ -421,6 +422,7 @@ function Library.new(config)
 			BorderSizePixel = 0,
 			ZIndex = 6,
 		}, header)
+		self._singleHeader = header
 	end
 	self._topBar = topBar
 	self._tabsContainer = tabs
@@ -512,6 +514,226 @@ function Library.new(config)
 		if self.Gui then
 			self.Gui.Enabled = not self.Gui.Enabled
 		end
+	end
+
+	function self:RemoteSpy(options)
+		options = options or {}
+
+		if self._spyRoot then
+			self._spyRoot:Destroy()
+		end
+		if self._singleHeader then
+			self._singleHeader.Visible = false
+		end
+
+		local view = {
+			_logs = {},
+			_selectedButton = nil,
+			_library = self,
+		}
+		local root = create("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			ClipsDescendants = true,
+			ZIndex = 4,
+		}, self._content)
+		self._spyRoot = root
+
+		local topBar = create("Frame", {
+			Size = UDim2.new(1, 0, 0, 30),
+			BackgroundColor3 = Color3.fromRGB(26, 26, 30),
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		}, root)
+		addText(topBar, options.Title or "RemoteSpy", 12, COLORS.Text, {
+			Position = UDim2.fromOffset(10, 0),
+			Size = UDim2.new(1, -120, 1, 0),
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Font = FONTS.Bold,
+			ZIndex = 6,
+		})
+		addText(topBar, options.Status or "visual preview", 9, COLORS.Muted, {
+			Position = UDim2.new(1, -104, 0, 0),
+			Size = UDim2.fromOffset(78, 30),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			Font = FONTS.Medium,
+			ZIndex = 6,
+		})
+		local close = create("TextButton", {
+			Position = UDim2.new(1, -25, 0, 5),
+			Size = UDim2.fromOffset(20, 20),
+			BackgroundColor3 = Color3.fromRGB(38, 38, 43),
+			Text = "×",
+			TextColor3 = COLORS.Muted,
+			TextSize = 14,
+			Font = FONTS.Medium,
+			AutoButtonColor = false,
+			ZIndex = 7,
+		}, topBar)
+		addCorner(close, 4)
+		connect(close.MouseButton1Click, function()
+			self:Destroy()
+		end)
+
+		local body = create("Frame", {
+			Position = UDim2.fromOffset(0, 30),
+			Size = UDim2.new(1, 0, 1, -30),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 39),
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			ZIndex = 4,
+		}, root)
+		local logPanel = create("Frame", {
+			Size = UDim2.new(0, 165, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(52, 52, 56),
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		}, body)
+		local logList = create("ScrollingFrame", {
+			Position = UDim2.fromOffset(8, 8),
+			Size = UDim2.new(1, -16, 1, -16),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = COLORS.LineBright,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ZIndex = 6,
+		}, logPanel)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 3),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, logList)
+
+		local detailPanel = create("Frame", {
+			Position = UDim2.fromOffset(165, 0),
+			Size = UDim2.new(1, -165, 1, 0),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 39),
+			BorderSizePixel = 0,
+			ZIndex = 5,
+		}, body)
+		local codeHeight = options.CodeHeight or 150
+		local codePanel = create("Frame", {
+			Size = UDim2.new(1, 0, 0, codeHeight),
+			BackgroundColor3 = Color3.fromRGB(29, 31, 40),
+			BorderSizePixel = 0,
+			ZIndex = 6,
+		}, detailPanel)
+		addText(codePanel, "generated request", 9, COLORS.Muted, {
+			Position = UDim2.fromOffset(12, 8),
+			Size = UDim2.new(1, -24, 0, 16),
+			Font = FONTS.Bold,
+			ZIndex = 7,
+		})
+		local codeLabel = addText(codePanel, options.Code or "-- no remote selected", 12, COLORS.Text, {
+			Position = UDim2.fromOffset(12, 28),
+			Size = UDim2.new(1, -24, 1, -36),
+			Font = Enum.Font.Code,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextWrapped = false,
+			ZIndex = 7,
+		})
+		local actions = create("ScrollingFrame", {
+			Position = UDim2.new(0, 0, 0, codeHeight),
+			Size = UDim2.new(1, 0, 1, -codeHeight),
+			BackgroundColor3 = Color3.fromRGB(35, 35, 39),
+			BorderSizePixel = 0,
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = COLORS.LineBright,
+			CanvasSize = UDim2.new(0, 0, 0, 0),
+			ZIndex = 6,
+		}, detailPanel)
+		create("UIGridLayout", {
+			CellSize = UDim2.new(0.333, -8, 0, 28),
+			CellPadding = UDim2.fromOffset(8, 8),
+			FillDirectionMaxCells = 3,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, actions)
+
+		function view:SetCode(code)
+			codeLabel.Text = tostring(code or "")
+		end
+
+		function view:AddLog(entry)
+			local data = type(entry) == "table" and entry or {Name = tostring(entry)}
+			local row = create("TextButton", {
+				Size = UDim2.new(1, 0, 0, 28),
+				BackgroundColor3 = Color3.fromRGB(43, 43, 47),
+				Text = "",
+				AutoButtonColor = false,
+				ZIndex = 7,
+			}, logList)
+			create("Frame", {
+				Size = UDim2.new(0, 5, 1, 0),
+				BackgroundColor3 = data.Color or (data.Type == "function" and Color3.fromRGB(100, 90, 240) or Color3.fromRGB(255, 224, 0)),
+				BorderSizePixel = 0,
+				ZIndex = 8,
+			}, row)
+			addText(row, data.Name or "Remote", 11, COLORS.Text, {
+				Position = UDim2.fromOffset(12, 0),
+				Size = UDim2.new(1, -16, 1, 0),
+				TextYAlignment = Enum.TextYAlignment.Center,
+				TextTruncate = Enum.TextTruncate.AtEnd,
+				Font = FONTS.Medium,
+				ZIndex = 8,
+			})
+			connect(row.MouseEnter, function()
+				row.BackgroundColor3 = Color3.fromRGB(61, 61, 65)
+			end)
+			connect(row.MouseLeave, function()
+				if view._selectedButton ~= row then
+					row.BackgroundColor3 = Color3.fromRGB(43, 43, 47)
+				end
+			end)
+			connect(row.MouseButton1Click, function()
+				if view._selectedButton then
+					view._selectedButton.BackgroundColor3 = Color3.fromRGB(43, 43, 47)
+				end
+				view._selectedButton = row
+				row.BackgroundColor3 = Color3.fromRGB(77, 77, 82)
+				view:SetCode(data.Code or "-- no generated request")
+				safeCallback(data.Callback, data, view)
+			end)
+			table.insert(view._logs, row)
+			return row
+		end
+
+		function view:AddAction(name, callback)
+			local button = create("TextButton", {
+				Size = UDim2.fromOffset(112, 28),
+				BackgroundColor3 = Color3.fromRGB(29, 29, 33),
+				Text = tostring(name),
+				TextColor3 = COLORS.Text,
+				TextSize = 10,
+				Font = FONTS.Medium,
+				AutoButtonColor = false,
+				ZIndex = 7,
+			}, actions)
+			addCorner(button, 2)
+			addStroke(button, COLORS.LineBright)
+			connect(button.MouseEnter, function()
+				button.BackgroundColor3 = Color3.fromRGB(45, 45, 50)
+			end)
+			connect(button.MouseLeave, function()
+				button.BackgroundColor3 = Color3.fromRGB(29, 29, 33)
+			end)
+			connect(button.MouseButton1Click, function()
+				safeCallback(callback, button, view)
+			end)
+			return button
+		end
+
+		function view:Clear()
+			for _, item in ipairs(view._logs) do
+				item:Destroy()
+			end
+			table.clear(view._logs)
+			view._selectedButton = nil
+			view:SetCode("-- no remote selected")
+		end
+
+		return view
 	end
 
 	function self:Tab(nameOrOptions, icon)
