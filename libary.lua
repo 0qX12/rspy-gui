@@ -464,13 +464,11 @@ function Library.new(config)
 		self._visibilityVersion += 1
 		local version = self._visibilityVersion
 		local transitionDuration = showing and 0.34 or 0.28
-		local staggerStep = showing and 0.003 or 0.002
-		local maxStagger = showing and 0.1 or 0.06
 		if showing then
 			self.Window.Visible = true
 		end
 
-		for index, state in ipairs(self._windowAppearance) do
+		for _, state in ipairs(self._windowAppearance) do
 			local object = state.Object
 			if object.Parent then
 				local goal = {}
@@ -498,20 +496,19 @@ function Library.new(config)
 					end
 					goal.Transparency = showing and state.StrokeTransparency or 1
 				end
-				local stagger = math.min((index - 1) * staggerStep, maxStagger)
 				TweenService:Create(object, TweenInfo.new(
 					transitionDuration,
 					showing and Enum.EasingStyle.Quart or Enum.EasingStyle.Cubic,
 					showing and Enum.EasingDirection.Out or Enum.EasingDirection.In,
 					0,
 					false,
-					stagger
+					0
 				), goal):Play()
 			end
 		end
 
 		if not showing then
-			task.delay(transitionDuration + maxStagger + 0.04, function()
+			task.delay(transitionDuration + 0.04, function()
 				if self._visibilityVersion == version and self._hidden and self.Window.Parent then
 					self.Window.Visible = false
 				end
