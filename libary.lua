@@ -1,3 +1,6 @@
+-- Library.lua
+-- RemoteSpy-only monochrome GUI library.
+
 local Library = {}
 Library.__index = Library
 
@@ -385,31 +388,8 @@ function Library.new(config)
 			ZIndex = 8,
 		}, leftPanel)
 
-		local leftHeader = create("Frame", {
-			Size = UDim2.new(1, 0, 0, 34),
-			BackgroundColor3 = Color3.fromRGB(11, 11, 14),
-			BorderSizePixel = 0,
-			ZIndex = 6,
-		}, leftPanel)
-		addGradient(leftHeader, Color3.fromRGB(22, 22, 28), Color3.fromRGB(12, 12, 16), 90)
-		local countLabel = addText(leftHeader, "0", 9, COLORS.Muted, {
-			Position = UDim2.new(1, -54, 0, 0),
-			Size = UDim2.fromOffset(40, 34),
-			TextXAlignment = Enum.TextXAlignment.Right,
-			TextYAlignment = Enum.TextYAlignment.Center,
-			Font = FONTS.Medium,
-			ZIndex = 7,
-		})
-		create("Frame", {
-			Position = UDim2.new(0, 0, 1, -1),
-			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = COLORS.Line,
-			BorderSizePixel = 0,
-			ZIndex = 7,
-		}, leftHeader)
-
 		local logList = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(9, 43),
+			Position = UDim2.fromOffset(9, 9),
 			Size = UDim2.new(1, -18, 1, -52),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
@@ -739,16 +719,6 @@ function Library.new(config)
 			hideBanned()
 		end)
 
-		local function updateCount()
-			local visibleCount = 0
-			for _, target in ipairs(view._logs) do
-				if target.row.Parent and target.row.Visible then
-					visibleCount += 1
-				end
-			end
-			countLabel.Text = tostring(visibleCount)
-		end
-
 		function view:SetCode(code)
 			codeLabel.Text = tostring(code or "-- no remote selected")
 		end
@@ -839,7 +809,6 @@ function Library.new(config)
 						end
 					end
 					view:RefreshBanned()
-					updateCount()
 				end)
 			end
 			bannedCountLabel.Text = tostring(bannedCount) .. " blocked"
@@ -867,7 +836,6 @@ function Library.new(config)
 
 			contextMenu.Visible = false
 			view:RefreshBanned()
-			updateCount()
 		end
 
 		function view:OpenBanned()
@@ -1025,7 +993,6 @@ function Library.new(config)
 			if not view._selected and row.Visible then
 				selectTarget(target)
 			end
-			updateCount()
 			return row
 		end
 
@@ -1150,7 +1117,6 @@ function Library.new(config)
 			table.clear(view._logs)
 			view._selected = nil
 			view:SetCode("-- no remote selected")
-			updateCount()
 		end
 
 		return view
