@@ -32,6 +32,7 @@ local ICONS = {
 	Settings = {16898613777, {48, 48}, {771, 257}},
 	Close = {16898613869, {48, 48}, {869, 906}},
 	Search = {16898613699, {48, 48}, {918, 857}},
+	List = {16898613509, {48, 48}, {869, 808}},
 }
 
 local function iconProperties(icon, color, transparency)
@@ -427,6 +428,7 @@ function Library.new(config)
 		}, root)
 		addGradient(leftPanel, Color3.fromRGB(15, 15, 19), Color3.fromRGB(9, 9, 12), 90)
 		addStroke(leftPanel, COLORS.Line, 0.58)
+		local contextMenu
 		create("Frame", {
 			Position = UDim2.new(1, -1, 0, 0),
 			Size = UDim2.new(0, 1, 1, 0),
@@ -455,7 +457,7 @@ function Library.new(config)
 		end
 		local searchInput = create("TextBox", {
 			Position = UDim2.fromOffset(32, 0),
-			Size = UDim2.new(1, -40, 1, 0),
+			Size = UDim2.new(1, -72, 1, 0),
 			BackgroundTransparency = 1,
 			ClearTextOnFocus = false,
 			PlaceholderText = "Search remotes",
@@ -468,6 +470,16 @@ function Library.new(config)
 			TextYAlignment = Enum.TextYAlignment.Center,
 			ZIndex = 8,
 		}, searchFrame)
+		local filterButton = create("ImageButton", {
+			Position = UDim2.new(1, -32, 0, 3),
+			Size = UDim2.fromOffset(24, 24),
+			BackgroundTransparency = 1,
+			AutoButtonColor = false,
+			ZIndex = 9,
+		}, searchFrame)
+		for property, value in pairs(iconProperties(ICONS.List, COLORS.Muted, 0.08)) do
+			filterButton[property] = value
+		end
 
 		local logList = create("ScrollingFrame", {
 			Position = UDim2.fromOffset(9, 48),
@@ -485,9 +497,13 @@ function Library.new(config)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}, logList)
 		local searchQuery = ""
+		local filterType = "all"
 		local function matchesSearch(target)
-			return searchQuery == ""
+			local matchesName = searchQuery == ""
 				or string.find(string.lower(target.name), searchQuery, 1, true) ~= nil
+			local targetType = string.lower(tostring(target.data.Type or "event"))
+			local matchesType = filterType == "all" or targetType == filterType
+			return matchesName and matchesType
 		end
 		local function applySearch()
 			for _, target in ipairs(view._logs) do
@@ -500,6 +516,102 @@ function Library.new(config)
 		connect(searchInput:GetPropertyChangedSignal("Text"), function()
 			searchQuery = string.lower(searchInput.Text or "")
 			applySearch()
+		end)
+		local filterPopup = create("Frame", {
+			Position = UDim2.fromOffset(9, 44),
+			Size = UDim2.new(1, -18, 0, 132),
+			BackgroundColor3 = COLORS.PanelRaised,
+			BorderSizePixel = 0,
+			ClipsDescendants = true,
+			Active = true,
+			Visible = false,
+			ZIndex = 50,
+		}, leftPanel)
+		addCorner(filterPopup, 7)
+		addStroke(filterPopup, COLORS.LineBright, 0.25)
+		addGradient(filterPopup, Color3.fromRGB(38, 38, 47), Color3.fromRGB(19, 19, 25), 90)
+		addText(filterPopup, "filter by type", 10, COLORS.Muted, {
+			Position = UDim2.fromOffset(12, 8),
+			Size = UDim2.new(1, -24, 0, 18),
+			Font = FONTS.Semibold,
+			ZIndex = 51,
+		})
+		local filterList = create("Frame", {
+			Position = UDim2.fromOffset(8, 31),
+			Size = UDim2.new(1, -16, 1, -39),
+			BackgroundTransparency = 1,
+			ZIndex = 51,
+		}, filterPopup)
+		create("UIListLayout", {
+			Padding = UDim.new(0, 4),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}, filterList)
+		local filterOptions = {}
+		local function updateFilterVisuals()
+			for value, option in pairs(filterOptions) do
+				local active = value == filterType
+				option.BackgroundColor3 = active and Color3.fromRGB(48, 48, 58) or Color3.fromRGB(27, 27, 34)
+				option.TextColor3 = active and COLORS.Text or COLORS.Muted
+			end
+			filterButton.ImageColor3 = filterType == "all" and COLORS.Muted or COLORS.Text
+			filterButton.ImageTransparency = filterType == "all" and 0.08 or 0
+		end
+		local function addFilterOption(label, value, color)
+			local option = create("TextButton", {
+				Size = UDim2.new(1, 0, 0, 27),
+				BackgroundColor3 = Color3.fromRGB(27, 27, 34),
+				Text = "  " .. label,
+				TextColor3 = COLORS.Muted,
+				TextSize = 10,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Font = FONTS.Medium,
+				AutoButtonColor = false,
+				ZIndex = 52,
+			}, filterList)
+			addCorner(option, 5)
+			addStroke(option, COLORS.Line, 0.62)
+			create("Frame", {
+				Position = UDim2.fromOffset(6, 7),
+				Size = UDim2.fromOffset(2, 13),
+				BackgroundColor3 = color,
+				BorderSizePixel = 0,
+				ZIndex = 53,
+			}, option)
+			filterOptions[value] = option
+			connect(option.MouseEnter, function()
+				if filterType ~= value then
+					TweenService:Create(option, TweenInfo.new(0.1), {
+						BackgroundColor3 = Color3.fromRGB(42, 42, 50),
+					}):Play()
+				end
+			end)
+			connect(option.MouseLeave, function()
+				updateFilterVisuals()
+			end)
+			connect(option.MouseButton1Click, function()
+				filterType = value
+				filterPopup.Visible = false
+				updateFilterVisuals()
+				applySearch()
+			end)
+		end
+		addFilterOption("All types", "all", COLORS.Accent)
+		addFilterOption("Events", "event", COLORS.Event)
+		addFilterOption("Functions", "function", COLORS.Function)
+		updateFilterVisuals()
+		connect(filterButton.MouseEnter, function()
+			TweenService:Create(filterButton, TweenInfo.new(0.1), {
+				ImageColor3 = COLORS.Text,
+				ImageTransparency = 0,
+			}):Play()
+		end)
+		connect(filterButton.MouseLeave, function()
+			updateFilterVisuals()
+		end)
+		connect(filterButton.MouseButton1Click, function()
+			contextMenu.Visible = false
+			view._contextTarget = nil
+			filterPopup.Visible = not filterPopup.Visible
 		end)
 
 		local detailPanel = create("Frame", {
@@ -698,6 +810,7 @@ function Library.new(config)
 		local function showSettings()
 			settingsPanel.Visible = true
 			settingsButton.Visible = false
+			filterPopup.Visible = false
 			settingsPanel.BackgroundTransparency = 1
 			tweenSettingsAppearance(true)
 			TweenService:Create(settingsPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
@@ -732,7 +845,7 @@ function Library.new(config)
 		connect(settingsButton.MouseButton1Click, showSettings)
 		connect(settingsClose.MouseButton1Click, hideSettings)
 
-		local contextMenu = create("Frame", {
+		contextMenu = create("Frame", {
 			Size = UDim2.fromOffset(188, 126),
 			BackgroundColor3 = COLORS.PanelRaised,
 			BorderSizePixel = 0,
@@ -859,6 +972,7 @@ function Library.new(config)
 		local function showBanned()
 			settingsPanel.Visible = false
 			settingsButton.Visible = false
+			filterPopup.Visible = false
 			bannedPanel.Visible = true
 			bannedPanel.BackgroundTransparency = 1
 			TweenService:Create(bannedPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
@@ -1017,6 +1131,7 @@ function Library.new(config)
 			view._contextTarget = nil
 		end
 		local function openContext(position)
+			filterPopup.Visible = false
 			for _, target in ipairs(view._logs) do
 				if view._selected ~= target and target.row.Parent then
 					TweenService:Create(target.row, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -1038,6 +1153,24 @@ function Library.new(config)
 			if position.X < topLeft.X or position.X > bottomRight.X
 				or position.Y < topLeft.Y or position.Y > bottomRight.Y then
 				closeContext()
+			end
+		end)
+		connect(UserInputService.InputBegan, function(input)
+			if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not filterPopup.Visible then
+				return
+			end
+
+			local position = input.Position
+			local popupTopLeft = filterPopup.AbsolutePosition
+			local popupBottomRight = popupTopLeft + filterPopup.AbsoluteSize
+			local buttonTopLeft = filterButton.AbsolutePosition
+			local buttonBottomRight = buttonTopLeft + filterButton.AbsoluteSize
+			local insidePopup = position.X >= popupTopLeft.X and position.X <= popupBottomRight.X
+				and position.Y >= popupTopLeft.Y and position.Y <= popupBottomRight.Y
+			local insideButton = position.X >= buttonTopLeft.X and position.X <= buttonBottomRight.X
+				and position.Y >= buttonTopLeft.Y and position.Y <= buttonBottomRight.Y
+			if not insidePopup and not insideButton then
+				filterPopup.Visible = false
 			end
 		end)
 
@@ -1128,14 +1261,14 @@ function Library.new(config)
 			})
 			local target = {data = data, name = remoteName, row = row, selectionStroke = selectionStroke}
 			connect(row.MouseEnter, function()
-				if not contextMenu.Visible and view._selected ~= target then
+				if not contextMenu.Visible and not filterPopup.Visible and view._selected ~= target then
 					TweenService:Create(row, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundColor3 = Color3.fromRGB(28, 28, 35),
 					}):Play()
 				end
 			end)
 			connect(row.MouseLeave, function()
-				if not contextMenu.Visible and view._selected ~= target then
+				if not contextMenu.Visible and not filterPopup.Visible and view._selected ~= target then
 					TweenService:Create(row, TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundColor3 = Color3.fromRGB(17, 17, 21),
 					}):Play()
@@ -1151,6 +1284,7 @@ function Library.new(config)
 				end
 			end)
 			connect(row.MouseButton1Click, function()
+				filterPopup.Visible = false
 				closeContext()
 				selectTarget(target)
 			end)
