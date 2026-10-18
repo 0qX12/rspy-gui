@@ -226,8 +226,6 @@ function Library.new(config)
 		_toggleKey = resolveKeyCode(config.ToggleKey),
 		_onToggleKeyChanged = config.OnToggleKeyChanged,
 		_keyCapture = false,
-		_windowAppearance = {},
-		_visibilityVersion = 0,
 		_view = nil,
 	}, Library)
 
@@ -238,7 +236,7 @@ function Library.new(config)
 		previous:Destroy()
 	end
 
-	local windowSize, width, height = resolveSize(config)
+	local windowSize = resolveSize(config)
 
 	self.Gui = create("ScreenGui", {
 		Name = guiName,
@@ -424,96 +422,9 @@ function Library.new(config)
 		end
 	end
 
-	local function collectAppearance(root)
-		local appearance = {}
-		for _, object in ipairs(root:GetDescendants()) do
-			local base = {}
-			if object:IsA("GuiObject") then
-				base.BackgroundTransparency = object.BackgroundTransparency
-			end
-			if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
-				base.TextTransparency = object.TextTransparency
-			end
-			if object:IsA("ImageLabel") or object:IsA("ImageButton") then
-				base.ImageTransparency = object.ImageTransparency
-			end
-			if object:IsA("UIStroke") then
-				base.Transparency = object.Transparency
-			end
-
-			if next(base) then
-				local cachedBase = self._windowAppearance[object]
-				if cachedBase then
-					base = cachedBase
-				else
-					self._windowAppearance[object] = base
-				end
-				table.insert(appearance, {Object = object, Base = base})
-			end
-		end
-		return appearance
-	end
-
-	local function animateWindow(showing)
-		self._visibilityVersion += 1
-		local version = self._visibilityVersion
-		local transitionDuration = showing and 0.22 or 0.16
-		local hiddenSize = UDim2.fromOffset(
-			math.floor(width * 0.95),
-			math.floor(height * 0.95)
-		)
-		local snapshot = collectAppearance(self.Window)
-
-		if showing then
-			self.Window.Visible = true
-			self.Window.Size = hiddenSize
-			for _, item in ipairs(snapshot) do
-				for property in pairs(item.Base) do
-					item.Object[property] = 1
-				end
-			end
-		end
-
-		TweenService:Create(self.Window, TweenInfo.new(
-			transitionDuration,
-			Enum.EasingStyle.Quint,
-			showing and Enum.EasingDirection.Out or Enum.EasingDirection.In
-		), {
-			Size = showing and windowSize or hiddenSize,
-		}):Play()
-
-		for _, item in ipairs(snapshot) do
-			if item.Object.Parent then
-				local goal = {}
-				for property, value in pairs(item.Base) do
-					goal[property] = showing and value or 1
-				end
-				TweenService:Create(item.Object, TweenInfo.new(
-					transitionDuration * 0.7,
-					Enum.EasingStyle.Quad,
-					Enum.EasingDirection.Out,
-					0,
-					false,
-					showing and transitionDuration * 0.3 or 0
-				), goal):Play()
-			end
-		end
-
-		if not showing then
-			task.delay(transitionDuration + 0.05, function()
-				if self._visibilityVersion == version and self._hidden and self.Window.Parent then
-					for _, item in ipairs(snapshot) do
-						if item.Object.Parent then
-							for property, value in pairs(item.Base) do
-								item.Object[property] = value
-							end
-						end
-					end
-					self.Window.Size = windowSize
-					self.Window.Visible = false
-				end
-			end)
-		end
+	local function setWindowVisibility(visible)
+		self.Window.Size = windowSize
+		self.Window.Visible = visible == true
 	end
 
 	function self:SetToggleKey(value)
@@ -536,7 +447,7 @@ function Library.new(config)
 		end
 
 		self._hidden = true
-		animateWindow(false)
+		setWindowVisibility(false)
 		self:Notify({
 			Title = "RemoteSpy hidden",
 			Text = "Press Home to restore",
@@ -550,7 +461,7 @@ function Library.new(config)
 		end
 
 		self._hidden = false
-		animateWindow(true)
+		setWindowVisibility(true)
 	end
 
 	function self:ToggleHidden()
