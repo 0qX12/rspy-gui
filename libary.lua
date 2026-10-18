@@ -78,6 +78,9 @@ local function addStroke(parent, color, transparency)
 end
 
 local function addGradient(parent, startColor, endColor, rotation)
+	-- UIGradient multiplies its colors by the object's base color. Keep the
+	-- base neutral so the requested surface colors remain visible at 1x scale.
+	parent.BackgroundColor3 = Color3.new(1, 1, 1)
 	return create("UIGradient", {
 		Color = ColorSequence.new(startColor, endColor),
 		Rotation = rotation or 90,
@@ -91,8 +94,7 @@ local function addText(parent, value, size, color, properties)
 		TextColor3 = color or COLORS.Text,
 		TextSize = size or 11,
 		Font = FONTS.Medium,
-		TextStrokeColor3 = COLORS.Background,
-		TextStrokeTransparency = 0.88,
+		TextStrokeTransparency = 1,
 		TextXAlignment = Enum.TextXAlignment.Left,
 	}
 
@@ -242,6 +244,13 @@ function Library.new(config)
 		Active = true,
 		ZIndex = 5,
 	}, self.Window)
+	create("Frame", {
+		Position = UDim2.new(0, 0, 1, -1),
+		Size = UDim2.new(1, 0, 0, 1),
+		BackgroundColor3 = COLORS.Line,
+		BorderSizePixel = 0,
+		ZIndex = 7,
+	}, topBar)
 	addGradient(topBar, Color3.fromRGB(25, 25, 31), Color3.fromRGB(13, 13, 17), 90)
 	addText(topBar, config.Title or "RemoteSpy", 12, COLORS.Text, {
 		Position = UDim2.fromOffset(12, 0),
@@ -443,8 +452,9 @@ function Library.new(config)
 			Size = UDim2.new(1, -18, 1, -52),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 3,
+			ScrollBarThickness = 4,
 			ScrollBarImageColor3 = COLORS.LineBright,
+			ScrollBarImageTransparency = 0.2,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 6,
 		}, leftPanel)
@@ -472,29 +482,35 @@ function Library.new(config)
 		}, detailPanel)
 		addStroke(codePanel, COLORS.Line, 0.25)
 		addGradient(codePanel, Color3.fromRGB(25, 25, 31), Color3.fromRGB(15, 15, 19), 90)
-		local codeLabel = addText(codePanel, options.Code or "-- no remote selected", 12, COLORS.Text, {
-			Position = UDim2.fromOffset(18, 17),
-			Size = UDim2.new(1, -36, 1, -34),
+		create("Frame", {
+			Position = UDim2.fromOffset(0, 34),
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = COLORS.Line,
+			BorderSizePixel = 0,
+			ZIndex = 7,
+		}, codePanel)
+		local codeLabel = addText(codePanel, options.Code or "-- no remote selected", 13, Color3.fromRGB(230, 230, 235), {
+			Position = UDim2.fromOffset(18, 48),
+			Size = UDim2.new(1, -36, 1, -64),
 			Font = FONTS.Code,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextWrapped = false,
 			ZIndex = 7,
 		})
 
-	local settingsButton = create("TextButton", {
+		local settingsButton = create("TextButton", {
 			Position = UDim2.new(0, 9, 1, -36),
 			Size = UDim2.new(1, -19, 0, 27),
-			BackgroundColor3 = COLORS.Control,
+			BackgroundColor3 = Color3.fromRGB(25, 25, 31),
 			Text = "settings",
-			TextColor3 = COLORS.Muted,
-			TextSize = 9,
+			TextColor3 = COLORS.Text,
+			TextSize = 10,
 			Font = FONTS.Semibold,
 			AutoButtonColor = false,
 			ZIndex = 12,
-	}, leftPanel)
-	addCorner(settingsButton, 5)
-	addStroke(settingsButton, COLORS.Line, 0.15)
-	addGradient(settingsButton, Color3.fromRGB(43, 43, 51), COLORS.Control, 90)
+		}, leftPanel)
+		addCorner(settingsButton, 5)
+		addStroke(settingsButton, COLORS.Line, 0.15)
 
 		local settingsPanel = create("Frame", {
 			Position = UDim2.fromOffset(0, 0),
@@ -505,9 +521,9 @@ function Library.new(config)
 			ClipsDescendants = true,
 			ZIndex = 8,
 			Visible = false,
-	}, root)
-	addStroke(settingsPanel, COLORS.Line, 0.1)
-	addGradient(settingsPanel, Color3.fromRGB(24, 24, 30), Color3.fromRGB(12, 12, 16), 90)
+		}, root)
+		addStroke(settingsPanel, COLORS.Line, 0.1)
+		addGradient(settingsPanel, Color3.fromRGB(24, 24, 30), Color3.fromRGB(12, 12, 16), 90)
 		addText(settingsPanel, "settings", 10, COLORS.Text, {
 			Position = UDim2.fromOffset(13, 7),
 			Size = UDim2.new(1, -26, 0, 22),
@@ -544,8 +560,9 @@ function Library.new(config)
 			Size = UDim2.new(1, -18, 1, -43),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 3,
+			ScrollBarThickness = 4,
 			ScrollBarImageColor3 = COLORS.LineBright,
+			ScrollBarImageTransparency = 0.2,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 9,
 		}, settingsPanel)
@@ -588,8 +605,8 @@ function Library.new(config)
 		end)
 		connect(settingsButton.MouseLeave, function()
 			TweenService:Create(settingsButton, TweenInfo.new(0.12), {
-				BackgroundColor3 = COLORS.Control,
-				TextColor3 = COLORS.Muted,
+				BackgroundColor3 = Color3.fromRGB(25, 25, 31),
+				TextColor3 = COLORS.Text,
 			}):Play()
 		end)
 		connect(settingsButton.MouseButton1Click, showSettings)
@@ -661,8 +678,10 @@ function Library.new(config)
 			Size = UDim2.new(1, -36, 1, -70),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			ScrollBarThickness = 3,
+			ScrollBarThickness = 4,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			ScrollBarImageColor3 = COLORS.LineBright,
+			ScrollBarImageTransparency = 0.2,
 			ZIndex = 31,
 		}, bannedPanel)
 		create("UIListLayout", {Padding = UDim.new(0, 6)}, bannedList)
@@ -753,7 +772,6 @@ function Library.new(config)
 				}, bannedList)
 				addCorner(item, 4)
 				addStroke(item, COLORS.Line, 0.35)
-				addGradient(item, Color3.fromRGB(38, 38, 46), Color3.fromRGB(26, 26, 32), 90)
 				connect(item.MouseEnter, function()
 					TweenService:Create(item, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 						BackgroundColor3 = Color3.fromRGB(48, 48, 57),
@@ -905,7 +923,6 @@ function Library.new(config)
 			}, logList)
 			addCorner(row, 4)
 			addStroke(row, COLORS.Line, 0.35)
-			addGradient(row, Color3.fromRGB(23, 23, 29), Color3.fromRGB(15, 15, 19), 90)
 			create("Frame", {
 				Size = UDim2.new(0, 4, 1, 0),
 				BackgroundColor3 = data.Color or typeColor(remoteType),
@@ -992,7 +1009,6 @@ function Library.new(config)
 				}, row)
 				addCorner(toggle, 6)
 				addStroke(toggle, COLORS.Line)
-				addGradient(toggle, Color3.fromRGB(43, 43, 51), COLORS.Control, 90)
 				local knob = create("Frame", {
 					Size = UDim2.fromOffset(10, 10),
 					BorderSizePixel = 0,
@@ -1042,7 +1058,6 @@ function Library.new(config)
 			}, row)
 			addCorner(button, 4)
 			addStroke(button, COLORS.Line, 0.15)
-			addGradient(button, Color3.fromRGB(43, 43, 51), COLORS.Control, 90)
 			connect(button.MouseEnter, function()
 				TweenService:Create(button, TweenInfo.new(0.1), {
 					BackgroundColor3 = Color3.fromRGB(42, 42, 50),
