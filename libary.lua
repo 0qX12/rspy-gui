@@ -33,6 +33,7 @@ local ICONS = {
 	Close = {16898613869, {48, 48}, {869, 906}},
 	Search = {16898613699, {48, 48}, {918, 857}},
 	List = {16898613509, {48, 48}, {869, 808}},
+	Minus = {16898613613, {48, 48}, {771, 196}},
 }
 
 local function iconProperties(icon, color, transparency)
@@ -203,6 +204,7 @@ function Library.new(config)
 		_connections = {},
 		_dynamicConnections = {},
 		_destroyed = false,
+		_hidden = false,
 		_view = nil,
 	}, Library)
 
@@ -289,6 +291,18 @@ function Library.new(config)
 	end
 	addCorner(closeButton, 5)
 	addStroke(closeButton, COLORS.Line, 0.2)
+	local hideButton = create("ImageButton", {
+		Position = UDim2.new(1, -51, 0, 6),
+		Size = UDim2.fromOffset(20, 20),
+		BackgroundColor3 = COLORS.Control,
+		AutoButtonColor = false,
+		ZIndex = 7,
+	}, topBar)
+	for property, value in pairs(iconProperties(ICONS.Minus, COLORS.Muted, 0.08)) do
+		hideButton[property] = value
+	end
+	addCorner(hideButton, 5)
+	addStroke(hideButton, COLORS.Line, 0.2)
 
 	local body = create("Frame", {
 		Position = UDim2.fromOffset(0, 34),
@@ -325,6 +339,23 @@ function Library.new(config)
 	end)
 	connect(closeButton.MouseButton1Click, function()
 		self:Destroy()
+	end)
+	connect(hideButton.MouseEnter, function()
+		TweenService:Create(hideButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = COLORS.PanelRaised,
+			ImageColor3 = COLORS.Text,
+			ImageTransparency = 0,
+		}):Play()
+	end)
+	connect(hideButton.MouseLeave, function()
+		TweenService:Create(hideButton, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			BackgroundColor3 = COLORS.Control,
+			ImageColor3 = COLORS.Muted,
+			ImageTransparency = 0.08,
+		}):Play()
+	end)
+	connect(hideButton.MouseButton1Click, function()
+		self:Hide()
 	end)
 
 	local dragging = false
@@ -368,6 +399,45 @@ function Library.new(config)
 			self.Gui.Enabled = not self.Gui.Enabled
 		end
 	end
+
+	function self:Hide()
+		if self._destroyed or self._hidden then
+			return
+		end
+
+		self._hidden = true
+		self.Window.Visible = false
+		self:Notify({
+			Title = "RemoteSpy hidden",
+			Text = "Press Home to restore",
+			Duration = 5,
+		})
+	end
+
+	function self:Show()
+		if self._destroyed then
+			return
+		end
+
+		self._hidden = false
+		self.Window.Visible = true
+	end
+
+	function self:ToggleHidden()
+		if self._hidden then
+			self:Show()
+		else
+			self:Hide()
+		end
+	end
+
+	connect(UserInputService.InputBegan, function(input)
+		if input.UserInputType == Enum.UserInputType.Keyboard
+			and input.KeyCode == Enum.KeyCode.Home
+			and self._hidden then
+			self:Show()
+		end
+	end)
 
 	function self:_connectDynamic(signal, handler)
 		local connection = signal:Connect(handler)
