@@ -120,6 +120,7 @@ local function addStroke(parent, color, transparency)
 		Color = color or COLORS.Line,
 		Transparency = transparency or 0,
 		Thickness = 1,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	}, parent)
 end
 
@@ -254,10 +255,10 @@ function Library.new(config)
 
 	self.Window = create("Frame", {
 		Size = windowSize,
-		AnchorPoint = Vector2.new(0.5, 0.5),
+		AnchorPoint = Vector2.zero,
 		Position = UDim2.fromOffset(
-			math.floor(viewport.X / 2),
-			math.floor(viewport.Y / 2)
+			math.floor((viewport.X - width) / 2),
+			math.floor((viewport.Y - height) / 2)
 		),
 		BackgroundColor3 = COLORS.Background,
 		BorderSizePixel = 0,
@@ -758,7 +759,7 @@ function Library.new(config)
 		end
 		local function addFilterOption(label, value, color)
 			local option = create("TextButton", {
-				Size = UDim2.new(1, 0, 0, 27),
+				Size = UDim2.new(1, 0, 0, 28),
 				BackgroundColor3 = Color3.fromRGB(27, 27, 34),
 				Text = "",
 				AutoButtonColor = false,
