@@ -178,6 +178,23 @@ local function resolveSize(config)
 	return UDim2.fromOffset(width, height), width, height
 end
 
+local function resolveKeyCode(value)
+	if typeof(value) == "EnumItem" and value.EnumType == Enum.KeyCode then
+		return value
+	end
+
+	if type(value) == "string" and value ~= "" then
+		local ok, keyCode = pcall(function()
+			return Enum.KeyCode[value]
+		end)
+		if ok and typeof(keyCode) == "EnumItem" then
+			return keyCode
+		end
+	end
+
+	return Enum.KeyCode.Home
+end
+
 local function typeColor(remoteType)
 	return string.lower(tostring(remoteType or "event")) == "function"
 		and COLORS.Function
@@ -205,6 +222,10 @@ function Library.new(config)
 		_dynamicConnections = {},
 		_destroyed = false,
 		_hidden = false,
+		_toggleKey = resolveKeyCode(config.ToggleKey),
+		_keyCapture = false,
+		_windowAppearance = nil,
+		_visibilityVersion = 0,
 		_view = nil,
 	}, Library)
 
@@ -400,13 +421,114 @@ function Library.new(config)
 		end
 	end
 
+	local function captureWindowAppearance()
+		if self._windowAppearance then
+			return
+		end
+
+		self._windowAppearance = {}
+		local function capture(object)
+			local state = {Object = object}
+			local hasState = false
+			if object:IsA("GuiObject") then
+				state.BackgroundTransparency = object.BackgroundTransparency
+				hasState = true
+			end
+			if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+				state.TextTransparency = object.TextTransparency
+				hasState = true
+			end
+			if object:IsA("ImageLabel") or object:IsA("ImageButton") then
+				state.ImageTransparency = object.ImageTransparency
+				hasState = true
+			end
+			if object:IsA("UIStroke") then
+				state.StrokeTransparency = object.Transparency
+				hasState = true
+			end
+			if hasState then
+				table.insert(self._windowAppearance, state)
+			end
+		end
+
+		capture(self.Window)
+		for _, object in ipairs(self.Window:GetDescendants()) do
+			capture(object)
+		end
+	end
+
+	local function animateWindow(showing)
+		captureWindowAppearance()
+		self._visibilityVersion += 1
+		local version = self._visibilityVersion
+		if showing then
+			self.Window.Visible = true
+		end
+
+		for index, state in ipairs(self._windowAppearance) do
+			local object = state.Object
+			if object.Parent then
+				local goal = {}
+				if state.BackgroundTransparency ~= nil then
+					if showing then
+						object.BackgroundTransparency = 1
+					end
+					goal.BackgroundTransparency = showing and state.BackgroundTransparency or 1
+				end
+				if state.TextTransparency ~= nil then
+					if showing then
+						object.TextTransparency = 1
+					end
+					goal.TextTransparency = showing and state.TextTransparency or 1
+				end
+				if state.ImageTransparency ~= nil then
+					if showing then
+						object.ImageTransparency = 1
+					end
+					goal.ImageTransparency = showing and state.ImageTransparency or 1
+				end
+				if state.StrokeTransparency ~= nil then
+					if showing then
+						object.Transparency = 1
+					end
+					goal.Transparency = showing and state.StrokeTransparency or 1
+				end
+				TweenService:Create(object, TweenInfo.new(
+					showing and 0.2 or 0.16,
+					Enum.EasingStyle.Quint,
+					showing and Enum.EasingDirection.Out or Enum.EasingDirection.In,
+					0,
+					false,
+					showing and math.min(index * 0.0015, 0.05) or 0
+				), goal):Play()
+			end
+		end
+
+		if not showing then
+			task.delay(0.18, function()
+				if self._visibilityVersion == version and self._hidden and self.Window.Parent then
+					self.Window.Visible = false
+				end
+			end)
+		end
+	end
+
+	function self:SetToggleKey(value)
+		self._toggleKey = resolveKeyCode(value)
+		return self._toggleKey
+	end
+
+	function self:GetToggleKey()
+		return self._toggleKey
+	end
+
 	function self:Hide()
 		if self._destroyed or self._hidden then
 			return
 		end
 
 		self._hidden = true
-		self.Window.Visible = false
+		animateWindow(false)
 		self:Notify({
 			Title = "RemoteSpy hidden",
 			Text = "Press Home to restore",
@@ -420,7 +542,7 @@ function Library.new(config)
 		end
 
 		self._hidden = false
-		self.Window.Visible = true
+		animateWindow(true)
 	end
 
 	function self:ToggleHidden()
@@ -433,9 +555,9 @@ function Library.new(config)
 
 	connect(UserInputService.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.Keyboard
-			and input.KeyCode == Enum.KeyCode.Home
-			and self._hidden then
-			self:Show()
+			and input.KeyCode == self._toggleKey
+			and not self._keyCapture then
+			self:ToggleHidden()
 		end
 	end)
 
@@ -1447,6 +1569,75 @@ function Library.new(config)
 				connect(toggle.MouseButton1Click, function()
 					control:Set(not state)
 				end)
+				table.insert(view._settings, control)
+				return control
+			end
+
+			if settingOptions.Type == "keybind" then
+				local keyCode = resolveKeyCode(settingOptions.Default)
+				local listening = false
+				local button = create("TextButton", {
+					Position = UDim2.new(1, -96, 0.5, -13),
+					Size = UDim2.fromOffset(84, 26),
+					BackgroundColor3 = COLORS.Control,
+					Text = keyCode.Name,
+					TextColor3 = COLORS.Text,
+					TextSize = 10,
+					Font = FONTS.Semibold,
+					AutoButtonColor = false,
+					ZIndex = 12,
+				}, row)
+				addCorner(button, 4)
+				addStroke(button, COLORS.Line, 0.15)
+				local control
+				local function refreshButton()
+					button.Text = listening and "press key" or keyCode.Name
+					button.TextColor3 = listening and COLORS.Text or COLORS.Text
+				end
+				local function setKey(value, fire)
+					keyCode = resolveKeyCode(value)
+					listening = false
+					self._keyCapture = false
+					refreshButton()
+					if fire then
+						safeCallback(callback, keyCode, view)
+					end
+				end
+				connect(button.MouseEnter, function()
+					TweenService:Create(button, TweenInfo.new(0.1), {
+						BackgroundColor3 = Color3.fromRGB(42, 42, 50),
+					}):Play()
+				end)
+				connect(button.MouseLeave, function()
+					TweenService:Create(button, TweenInfo.new(0.12), {
+						BackgroundColor3 = COLORS.Control,
+					}):Play()
+				end)
+				connect(button.MouseButton1Click, function()
+					listening = true
+					self._keyCapture = true
+					refreshButton()
+				end)
+				connect(UserInputService.InputBegan, function(input)
+					if not listening or input.UserInputType ~= Enum.UserInputType.Keyboard then
+						return
+					end
+					if input.KeyCode == Enum.KeyCode.Escape then
+						listening = false
+						self._keyCapture = false
+						refreshButton()
+						return
+					end
+					setKey(input.KeyCode, true)
+				end)
+				control = {
+					Set = function(_, value)
+						setKey(value, true)
+					end,
+					Get = function()
+						return keyCode
+					end,
+				}
 				table.insert(view._settings, control)
 				return control
 			end
