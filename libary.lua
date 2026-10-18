@@ -9,6 +9,7 @@ local COLORS = {
 	Background = Color3.fromRGB(10, 10, 13),
 	Panel = Color3.fromRGB(17, 17, 21),
 	PanelRaised = Color3.fromRGB(23, 23, 28),
+	Control = Color3.fromRGB(25, 25, 30),
 	Line = Color3.fromRGB(43, 43, 51),
 	LineBright = Color3.fromRGB(78, 78, 88),
 	Text = Color3.fromRGB(235, 235, 239),
@@ -291,7 +292,7 @@ function Library.new(config)
 		BackgroundColor3 = COLORS.Panel,
 		BorderSizePixel = 0,
 		Active = true,
-		ClipsDescendants = false,
+		ClipsDescendants = true,
 	}, self.Gui)
 	addCorner(self.Window, 9)
 	addStroke(self.Window, COLORS.Line)
@@ -504,15 +505,15 @@ function Library.new(config)
 		}, tab._button)
 
 		tab._page = create("ScrollingFrame", {
-			Position = UDim2.fromOffset(12, 12),
-			Size = UDim2.new(1, -24, 1, -24),
+			Position = UDim2.fromOffset(18, 16),
+			Size = UDim2.new(1, -36, 1, -36),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
 			ScrollBarThickness = 3,
 			ScrollBarImageColor3 = COLORS.Line,
 			Visible = false,
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
-			ClipsDescendants = false,
+			ClipsDescendants = true,
 			ZIndex = 2,
 		}, pages)
 		local pageContent = create("Frame", {
@@ -634,6 +635,13 @@ function Library.new(config)
 					Font = Enum.Font.GothamSemibold,
 					ZIndex = 6,
 				})
+				create("Frame", {
+					Position = UDim2.new(0, 0, 1, -1),
+					Size = UDim2.new(1, 0, 0, 1),
+					BackgroundColor3 = Color3.fromRGB(28, 28, 34),
+					BorderSizePixel = 0,
+					ZIndex = 5,
+				}, row)
 				return row
 			end
 
@@ -663,7 +671,7 @@ function Library.new(config)
 				local button = create("TextButton", {
 					Position = UDim2.new(1, -105, 0.5, -13),
 					Size = UDim2.fromOffset(94, 26),
-					BackgroundColor3 = COLORS.Background,
+					BackgroundColor3 = COLORS.Control,
 					Text = data.Text or "execute",
 					TextColor3 = COLORS.Text,
 					TextSize = 10,
@@ -685,7 +693,7 @@ function Library.new(config)
 					button.BackgroundColor3 = COLORS.PanelRaised
 				end)
 				connect(button.MouseLeave, function()
-					button.BackgroundColor3 = COLORS.Background
+					button.BackgroundColor3 = COLORS.Control
 				end)
 				connect(button.MouseButton1Click, function()
 					safeCallback(data.Callback, nil, control)
@@ -707,7 +715,7 @@ function Library.new(config)
 				local button = create("TextButton", {
 					Position = UDim2.new(1, -44, 0.5, -10),
 					Size = UDim2.fromOffset(34, 19),
-					BackgroundColor3 = COLORS.Background,
+					BackgroundColor3 = Color3.fromRGB(27, 27, 32),
 					Text = "",
 					AutoButtonColor = false,
 					ZIndex = 7,
@@ -734,7 +742,7 @@ function Library.new(config)
 				}, row)
 				local function set(nextValue, fire)
 					value = nextValue == true
-					button.BackgroundColor3 = value and Color3.fromRGB(36, 36, 42) or COLORS.Background
+					button.BackgroundColor3 = value and Color3.fromRGB(36, 36, 42) or Color3.fromRGB(27, 27, 32)
 					knob.BackgroundColor3 = value and COLORS.Text or COLORS.Muted
 					knob.Position = value
 						and UDim2.new(1, -15, 0.5, -5)
@@ -788,7 +796,7 @@ function Library.new(config)
 				local bar = create("Frame", {
 					Position = UDim2.new(1, -88, 0.5, -12),
 					Size = UDim2.fromOffset(86, 24),
-					BackgroundColor3 = COLORS.PanelRaised,
+					BackgroundColor3 = COLORS.Control,
 					BorderSizePixel = 0,
 					Active = true,
 					ZIndex = 7,
@@ -898,7 +906,7 @@ function Library.new(config)
 				local button = create("TextButton", {
 					Position = UDim2.new(1, -136, 0.5, -15),
 					Size = UDim2.fromOffset(124, 30),
-					BackgroundColor3 = COLORS.Background,
+					BackgroundColor3 = COLORS.Control,
 					Text = "  " .. tostring(value or "Select"),
 					TextColor3 = COLORS.Text,
 					TextSize = 11,
@@ -983,11 +991,11 @@ function Library.new(config)
 				local data = parseOptions(nameOrOptions, callback)
 				local key = keyCodeFrom(data.CurrentKeybind or data.Default)
 				local listening = false
-				local row = self:_row(data.Name or "Keybind")
+				local row = self:_row(controlName(data, "Keybind"))
 				local button = create("TextButton", {
 					Position = UDim2.new(1, -100, 0.5, -13),
 					Size = UDim2.fromOffset(88, 26),
-					BackgroundColor3 = COLORS.Background,
+					BackgroundColor3 = COLORS.Control,
 					Text = keyName(key),
 					TextColor3 = COLORS.Text,
 					TextSize = 10,
